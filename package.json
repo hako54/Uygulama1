@@ -18,7 +18,8 @@
     "an-array-of-english-words": "2.0.0",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",
-    "wordle-tr-dictionary": "1.0.0"
+    "wordle-tr-dictionary": "1.0.0",
+    "wordlist-english": "1.2.1"
   },
   "scripts": {
     "start": "expo start",
@@ -26,7 +27,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "tsx --test tests/*.test.ts",
-    "build:dictionary": "node scripts/build-dictionary.mjs"
+    "build:words": "node scripts/build-words.mjs"
   },
   "private": true
 }

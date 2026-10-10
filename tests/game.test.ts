@@ -16,6 +16,11 @@ test('every answer is 5 unique uppercase letters', () => {
   }
 });
 
+test('answer lists last at least two years', () => {
+  assert.ok(WORDS.tr.length >= 730, `tr: ${WORDS.tr.length}`);
+  assert.ok(WORDS.en.length >= 730, `en: ${WORDS.en.length}`);
+});
+
 test('daily words cycle through the whole list without repeats', () => {
   for (const lang of ['tr', 'en'] as const) {
     const n = WORDS[lang].length;

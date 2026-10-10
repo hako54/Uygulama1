@@ -19,20 +19,29 @@ export function dayNumber(date = new Date()): number {
   return Math.floor((local - EPOCH) / 86_400_000);
 }
 
-/** Deterministic shuffle so consecutive days don't follow list order. */
-export function wordForDay(lang: Lang, day: number): string {
-  const list = WORDS[lang];
-  const n = list.length;
-  const cycle = Math.floor(day / n);
-  const pos = ((day % n) + n) % n;
-  // Multiplier coprime with n gives a permutation; vary it per cycle.
-  let step = 7 + cycle * 2;
-  while (gcd(step, n) !== 1) step++;
-  return list[(pos * step + cycle) % n];
+const shuffled: Partial<Record<Lang, string[]>> = {};
+
+/** Fixed pseudo-random order (mulberry32 + Fisher–Yates) so neighbouring words don't follow each other. */
+function dailyOrder(lang: Lang): string[] {
+  if (shuffled[lang]) return shuffled[lang];
+  const list = [...WORDS[lang]];
+  let seed = lang === 'tr' ? 0x6b656c69 : 0x6d6f2121;
+  const random = () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return (shuffled[lang] = list);
 }
 
-function gcd(a: number, b: number): number {
-  return b === 0 ? a : gcd(b, a % b);
+export function wordForDay(lang: Lang, day: number): string {
+  const order = dailyOrder(lang);
+  return order[((day % order.length) + order.length) % order.length];
 }
 
 const valid: Partial<Record<Lang, Set<string>>> = {};
