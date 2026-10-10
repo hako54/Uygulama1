@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Modal,
+  Platform,
   Pressable,
   Share,
   StyleSheet,
@@ -30,9 +31,11 @@ import {
   wordForDay,
 } from './src/game';
 import { KEYBOARD, STRINGS, fill } from './src/i18n';
+import { requestReminderPermission, scheduleReminders } from './src/reminders';
 import {
   BonusState,
   GameState,
+  ReminderPref,
   Stats,
   changeCredits,
   emptyStats,
@@ -40,12 +43,14 @@ import {
   loadCredits,
   loadGame,
   loadLang,
+  loadReminderPref,
   loadSeenHelp,
   loadStats,
   recordResult,
   saveBonus,
   saveGame,
   saveLang,
+  saveReminderPref,
   saveSeenHelp,
   saveStats,
 } from './src/storage';
@@ -101,6 +106,8 @@ function Game() {
   const [credits, setCredits] = useState(0);
   const [store, setStore] = useState<Store | null>(null);
   const [showExtra, setShowExtra] = useState(false);
+  const [reminderPref, setReminderPref] = useState<ReminderPref | null | undefined>(undefined);
+  const [showAsk, setShowAsk] = useState(false);
   const shake = useRef(new Animated.Value(0)).current;
 
   const t = STRINGS[lang];
@@ -118,8 +125,17 @@ function Game() {
       if (saved && LANGS.includes(saved)) setLang(saved);
       if (!(await loadSeenHelp())) setShowHelp(true);
       setCredits(await loadCredits());
+      setReminderPref(await loadReminderPref());
     })();
   }, []);
+
+  // Keep the next two weeks of morning reminders in sync with today's progress and language.
+  useEffect(() => {
+    if (!loaded || reminderPref === undefined || reminderPref === null) return;
+    const messages =
+      reminderPref === 'on' ? { title: 'Kelimo', bodies: t.notifyBodies, channel: t.channel } : null;
+    scheduleReminders(messages, game.status !== 'playing');
+  }, [loaded, reminderPref, lang, day, game.status]);
 
   // Connect to the App Store / Google Play for the extra word packs.
   useEffect(() => {
@@ -232,6 +248,24 @@ function Game() {
     if (letters(current).length < WORD_LENGTH) setCurrent((c) => c + upper(key, lang));
   };
 
+  const remindersSupported = Platform.OS === 'ios' || Platform.OS === 'android';
+
+  // After the first finished game, offer reminders once; the bell toggles them later.
+  const closeStats = () => {
+    setShowStats(false);
+    if (remindersSupported && reminderPref === null && game.status !== 'playing') setShowAsk(true);
+  };
+
+  const setReminders = async (wanted: boolean) => {
+    setShowAsk(false);
+    const granted = wanted && (await requestReminderPermission());
+    if (wanted) flash(granted ? t.remindersOn : t.permissionDenied, 2500);
+    else if (reminderPref === 'on') flash(t.remindersOff);
+    const pref: ReminderPref = granted ? 'on' : 'off';
+    setReminderPref(pref);
+    saveReminderPref(pref);
+  };
+
   const openExtra = () => {
     setShowStats(false);
     setShowExtra(true);
@@ -290,7 +324,15 @@ function Game() {
       <StatusBar style="light" />
 
       <View style={styles.header}>
-        <IconButton label="?" onPress={() => setShowHelp(true)} />
+        <View style={styles.headerSide}>
+          <IconButton label="?" onPress={() => setShowHelp(true)} />
+          {remindersSupported && (
+            <IconButton
+              label={reminderPref === 'on' ? '🔔' : '🔕'}
+              onPress={() => setReminders(reminderPref !== 'on')}
+            />
+          )}
+        </View>
         <View style={styles.titleBox}>
           <Text style={styles.title}>KELİMO</Text>
           {inBonus && (
@@ -299,7 +341,7 @@ function Game() {
             </Pressable>
           )}
         </View>
-        <View style={styles.headerRight}>
+        <View style={[styles.headerSide, styles.headerRight]}>
           <IconButton label={lang.toUpperCase()} onPress={() => setShowLang(true)} />
           <IconButton label="📊" onPress={() => setShowStats(true)} />
         </View>
@@ -398,7 +440,7 @@ function Game() {
         <Text style={[styles.body, styles.bold]}>{t.daily}</Text>
       </Sheet>
 
-      <Sheet visible={showStats} onClose={() => setShowStats(false)} title={t.stats} closeLabel={t.close}>
+      <Sheet visible={showStats} onClose={closeStats} title={t.stats} closeLabel={t.close}>
         <View style={styles.statRow}>
           <Stat value={stats.played} label={t.played} />
           <Stat value={stats.played ? Math.round((stats.won / stats.played) * 100) : 0} label={t.winPct} />
@@ -444,6 +486,14 @@ function Game() {
             <Text style={styles.extraButtonText}>＋ {t.playExtra}</Text>
           </Pressable>
         )}
+      </Sheet>
+
+      <Sheet visible={showAsk} onClose={() => setReminders(false)} title={t.askTitle} closeLabel={t.askNo}>
+        <Text style={[styles.body, styles.center]}>🔔</Text>
+        <Text style={[styles.body, styles.center]}>{t.askBody}</Text>
+        <Pressable style={styles.extraButton} onPress={() => setReminders(true)}>
+          <Text style={styles.extraButtonText}>{t.askYes}</Text>
+        </Pressable>
       </Sheet>
 
       <Sheet visible={showExtra} onClose={() => setShowExtra(false)} title={t.shopTitle} closeLabel={t.close}>
@@ -561,7 +611,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  headerRight: { flexDirection: 'row', gap: 4 },
+  // Both sides share a width so the title stays centred.
+  headerSide: { flexDirection: 'row', gap: 4, width: 80 },
+  headerRight: { justifyContent: 'flex-end' },
   titleBox: { alignItems: 'center' },
   title: { color: COLORS.text, fontSize: 26, fontWeight: '800', letterSpacing: 2 },
   bonusPill: {

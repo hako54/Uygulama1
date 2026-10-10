@@ -58,6 +58,10 @@ export const loadStats = async (lang: Lang) => (await load<Stats>(`stats:${lang}
 export const saveStats = (lang: Lang, s: Stats) => save(`stats:${lang}`, s);
 export const loadLang = () => load<Lang>('lang');
 export const saveLang = (l: Lang) => save('lang', l);
+/** 'on' / 'off' once the player has answered the reminder prompt; null before that. */
+export type ReminderPref = 'on' | 'off';
+export const loadReminderPref = () => load<ReminderPref>('reminders');
+export const saveReminderPref = (p: ReminderPref) => save('reminders', p);
 export const loadSeenHelp = () => load<boolean>('seenHelp');
 export const saveSeenHelp = () => save('seenHelp', true);
 

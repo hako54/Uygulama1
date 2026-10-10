@@ -19,6 +19,7 @@ Android ve iOS için Wordle tarzı, basit bir günlük kelime oyunu. Tek kod tab
 
 Aksanlar yok sayılır (É = E, Ç = C); İspanyolcada Ñ ayrı harftir, Almancada umlautlar açık yazılır (Ä = AE, ß = SS).
 - Her gün 1 ücretsiz kelime; daha fazlası için ertesi günü bekle ya da **ekstra kelime** satın al
+- Sabah 09:00 "günün kelimesi hazır" hatırlatması (o günün kelimesi çözüldüyse gönderilmez)
 - Emoji sonuç paylaşımı (🟩🟨⬛) — uygulamanın viral büyüme motoru
 - İnternet ve hesap gerektirmez, veriler cihazda saklanır
 
@@ -44,6 +45,13 @@ npx eas-cli@latest submit --platform ios       # Apple Developer hesabı (99$/y�
 
 Yüklemeden önce `app.json` içindeki `com.kelimo.app` paket adını kendinize ait bir adla değiştirin
 ve `assets/` altındaki simgeleri kendi tasarımınızla değiştirin.
+
+## Günlük hatırlatma
+
+Oyuncu ilk günlük kelimesini bitirince bir kez "Hatırlatayım mı?" diye sorulur; sonra sol üstteki
+🔔/🔕 düğmesiyle açılıp kapatılır. Bildirimler cihazda planlanır (sunucu gerekmez): uygulama her
+açıldığında önümüzdeki 14 günün sabah 09:00 bildirimleri oyuncunun dilinde yeniden kurulur, o günün
+kelimesi çözüldüyse o günkü atlanır. Uygulamayı 2 hafta açmayan oyuncu bildirim almayı bırakır.
 
 ## Ekstra kelimeler (uygulama içi satın alma)
 
@@ -83,6 +91,7 @@ satın almalar sunucuda doğrulanmaz (düşük fiyatlı tüketilebilir ürün i�
 | `scripts/build-words.mjs` | İki listeyi üretir: `npm run build:words` |
 | `scripts/words/` | Dil başına elle seçilmiş cevaplar (`*.curated.txt`) ve hariç tutulanlar (`*.exclude.txt`) |
 | `src/storage.ts` | Oyun durumu, istatistikler ve ekstra kelime haklarının cihazda saklanması |
+| `src/reminders.ts` | Günlük hatırlatma bildirimleri (expo-notifications) |
 | `src/store.ts` | App Store / Google Play satın alma (expo-iap) |
 | `src/i18n.ts` | Metinler ve klavye düzenleri |
 
@@ -92,9 +101,8 @@ satın almalar sunucuda doğrulanmaz (düşük fiyatlı tüketilebilir ürün i�
    haller şu an kabul edilmiyor. Gerekirse temiz bir çekimli kelime listesi eklenebilir.
 2. **Cevap listelerini büyütmek:** Portekizce, Fransızca ve Almanca listeler ~1,2–1,3 yıl yetiyor;
    bir yıl dolmadan sonlarına yeni kelimeler eklenmeli. Yeni diller (İtalyanca, Endonezce…) eklenebilir.
-3. **Bildirimler:** "Günün kelimesi hazır" hatırlatması (`expo-notifications`).
-4. **Uygulama simgesi, mağaza ekran görüntüleri ve ASO** (mağaza başlığı/açıklaması/anahtar kelimeler).
-5. **Gelir:** Ekstra kelime satışı hazır; ek olarak ödüllü reklam (reklam izle → 1 ekstra kelime) eklenebilir.
+3. **Uygulama simgesi, mağaza ekran görüntüleri ve ASO** (mağaza başlığı/açıklaması/anahtar kelimeler).
+4. **Gelir:** Ekstra kelime satışı hazır; ek olarak ödüllü reklam (reklam izle → 1 ekstra kelime) eklenebilir.
 
 ## Kelime listesi kaynakları
 
