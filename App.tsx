@@ -18,6 +18,7 @@ import {
   WORD_LENGTH,
   dayNumber,
   evaluate,
+  isValidWord,
   keyboardMarks,
   letters,
   shareText,
@@ -142,6 +143,11 @@ function Game() {
     if (letters(current).length < WORD_LENGTH) {
       doShake();
       flash(t.notEnough);
+      return;
+    }
+    if (!isValidWord(current, lang)) {
+      doShake();
+      flash(t.notInList);
       return;
     }
     const guesses = [...game.guesses, current];

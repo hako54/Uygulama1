@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { dayNumber, evaluate, letters, shareText, upper, wordForDay } from '../src/game';
+import { dayNumber, evaluate, isValidWord, letters, shareText, upper, wordForDay } from '../src/game';
 import { recordResult, emptyStats } from '../src/storage';
 import { WORDS } from '../src/words';
 
@@ -56,4 +56,16 @@ test('streaks', () => {
 
 test('share text', () => {
   assert.equal(shareText(0, ['CRANE'], 'CRANE', true), 'Kelimo #1 1/6\n\n🟩🟩🟩🟩🟩');
+});
+
+test('dictionary check', () => {
+  assert.ok(isValidWord('KALEM', 'tr'));
+  assert.ok(isValidWord('KAĞIT', 'tr'));
+  assert.ok(!isValidWord('ABCDE', 'tr'));
+  assert.ok(!isValidWord('KALEM', 'en'));
+  assert.ok(isValidWord('CRANE', 'en'));
+  assert.ok(!isValidWord('XQZVW', 'en'));
+  for (const lang of ['tr', 'en'] as const) {
+    for (const w of WORDS[lang]) assert.ok(isValidWord(w, lang), `${lang}: ${w}`);
+  }
 });

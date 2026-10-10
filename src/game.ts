@@ -1,3 +1,4 @@
+import { DICTIONARY } from './dictionary';
 import { WORDS } from './words';
 
 export type Lang = 'tr' | 'en';
@@ -32,6 +33,14 @@ export function wordForDay(lang: Lang, day: number): string {
 
 function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b);
+}
+
+const valid: Partial<Record<Lang, Set<string>>> = {};
+
+/** Accepts dictionary words plus every possible answer. */
+export function isValidWord(word: string, lang: Lang): boolean {
+  valid[lang] ??= new Set([...DICTIONARY[lang].split(' '), ...WORDS[lang]]);
+  return valid[lang].has(word);
 }
 
 /** Wordle scoring: exact matches first, then remaining letters by count. */

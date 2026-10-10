@@ -3,6 +3,7 @@ import { Lang } from './game';
 export const STRINGS = {
   tr: {
     notEnough: 'Yeterli harf yok',
+    notInList: 'Sözlükte yok',
     win: ['Dahice!', 'Muhteşem!', 'Harika!', 'Çok iyi!', 'Güzel!', 'Kıl payı!'],
     answerWas: 'Kelime',
     stats: 'İstatistikler',
@@ -28,6 +29,7 @@ export const STRINGS = {
   },
   en: {
     notEnough: 'Not enough letters',
+    notInList: 'Not in word list',
     win: ['Genius!', 'Magnificent!', 'Impressive!', 'Splendid!', 'Great!', 'Phew!'],
     answerWas: 'The word was',
     stats: 'Statistics',
