@@ -70,6 +70,27 @@ export function wordForDay(lang: Lang, day: number): string {
   return order[((day % order.length) + order.length) % order.length];
 }
 
+/** How many upcoming daily words an extra word must not reveal. */
+export const BONUS_SKIP_DAYS = 60;
+
+/**
+ * Picks the paid extra word at or after `fromIndex`. Extra words walk the daily order
+ * backwards from its end (the words furthest from coming up for free), skipping any that
+ * would be a daily word in the next `BONUS_SKIP_DAYS` days.
+ */
+export function nextBonus(lang: Lang, fromIndex: number, day: number): { index: number; word: string } {
+  const order = dailyOrder(lang);
+  const n = order.length;
+  const upcoming = new Set(
+    Array.from({ length: Math.min(BONUS_SKIP_DAYS, n - 1) }, (_, d) => wordForDay(lang, day + d)),
+  );
+  for (let index = fromIndex; index < fromIndex + n; index++) {
+    const word = order[n - 1 - (index % n)];
+    if (!upcoming.has(word)) return { index, word };
+  }
+  return { index: fromIndex, word: order[n - 1 - (fromIndex % n)] };
+}
+
 const valid: Partial<Record<Lang, Set<string>>> = {};
 
 /** Accepts dictionary words plus every possible answer. */

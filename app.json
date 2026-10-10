@@ -31,6 +31,9 @@
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#121213"
-    }
+    },
+    "plugins": [
+      "expo-iap"
+    ]
   }
 }

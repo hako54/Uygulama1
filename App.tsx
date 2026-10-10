@@ -18,6 +18,7 @@ import {
   Mark,
   MAX_GUESSES,
   WORD_LENGTH,
+  nextBonus,
   dayNumber,
   evaluate,
   isValidWord,
@@ -28,21 +29,27 @@ import {
   upper,
   wordForDay,
 } from './src/game';
-import { KEYBOARD, STRINGS } from './src/i18n';
+import { KEYBOARD, STRINGS, fill } from './src/i18n';
 import {
+  BonusState,
   GameState,
   Stats,
+  changeCredits,
   emptyStats,
+  loadBonus,
+  loadCredits,
   loadGame,
   loadLang,
   loadSeenHelp,
   loadStats,
   recordResult,
+  saveBonus,
   saveGame,
   saveLang,
   saveSeenHelp,
   saveStats,
 } from './src/storage';
+import { PACKS, PackId, Store, openStore } from './src/store';
 
 const COLORS = {
   bg: '#121213',
@@ -89,10 +96,20 @@ function Game() {
   const [showHelp, setShowHelp] = useState(false);
   const [showLang, setShowLang] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [mode, setMode] = useState<'daily' | 'bonus'>('daily');
+  const [bonus, setBonus] = useState<BonusState | null>(null);
+  const [credits, setCredits] = useState(0);
+  const [store, setStore] = useState<Store | null>(null);
+  const [showExtra, setShowExtra] = useState(false);
   const shake = useRef(new Animated.Value(0)).current;
 
   const t = STRINGS[lang];
-  const answer = wordForDay(lang, day);
+  const tRef = useRef(t);
+  tRef.current = t;
+  const inBonus = mode === 'bonus' && bonus !== null;
+  // The board shows either today's free word or the current paid extra word.
+  const board = inBonus ? bonus : game;
+  const answer = inBonus ? bonus.word : wordForDay(lang, day);
 
   // Restore language and first-run help once.
   useEffect(() => {
@@ -100,7 +117,28 @@ function Game() {
       const saved = await loadLang();
       if (saved && LANGS.includes(saved)) setLang(saved);
       if (!(await loadSeenHelp())) setShowHelp(true);
+      setCredits(await loadCredits());
     })();
+  }, []);
+
+  // Connect to the App Store / Google Play for the extra word packs.
+  useEffect(() => {
+    let active: Store | null = null;
+    let closed = false;
+    openStore({
+      onCredits: (total, added) => {
+        setCredits(total);
+        flash(fill(tRef.current.purchased, added), 2000);
+      },
+      onError: () => flash(tRef.current.purchaseFailed),
+    }).then((s) => {
+      if (closed) s.close();
+      else setStore((active = s));
+    });
+    return () => {
+      closed = true;
+      active?.close();
+    };
   }, []);
 
   // Load today's game and stats whenever the language or day changes.
@@ -108,10 +146,16 @@ function Game() {
     let cancelled = false;
     setLoaded(false);
     (async () => {
-      const [savedGame, savedStats] = await Promise.all([loadGame(lang), loadStats(lang)]);
+      const [savedGame, savedStats, savedBonus] = await Promise.all([
+        loadGame(lang),
+        loadStats(lang),
+        loadBonus(lang),
+      ]);
       if (cancelled) return;
       setGame(savedGame?.day === day ? savedGame : { day, guesses: [], status: 'playing' });
       setStats(savedStats);
+      setBonus(savedBonus);
+      setMode('daily');
       setCurrent('');
       setLoaded(true);
     })();
@@ -154,12 +198,23 @@ function Game() {
       flash(t.notInList);
       return;
     }
-    const guesses = [...game.guesses, current];
+    const guesses = [...board.guesses, current];
     const won = current === answer;
     const lost = !won && guesses.length >= MAX_GUESSES;
-    const next: GameState = { day, guesses, status: won ? 'won' : lost ? 'lost' : 'playing' };
-    setGame(next);
+    const status = won ? 'won' : lost ? 'lost' : 'playing';
     setCurrent('');
+    if (inBonus) {
+      const next: BonusState = { ...bonus, guesses, status };
+      setBonus(next);
+      saveBonus(lang, next);
+      if (won || lost) {
+        flash(won ? t.win[guesses.length - 1] : `${t.answerWas}: ${answer}`, 2000);
+        setTimeout(() => setShowExtra(true), 1600);
+      }
+      return;
+    }
+    const next: GameState = { day, guesses, status };
+    setGame(next);
     saveGame(lang, next);
     if (won || lost) {
       const newStats = recordResult(stats, day, won, guesses.length);
@@ -171,10 +226,44 @@ function Game() {
   };
 
   const onKey = (key: string) => {
-    if (!loaded || game.status !== 'playing') return;
+    if (!loaded || board.status !== 'playing') return;
     if (key === 'ENTER') return submit();
     if (key === 'DEL') return setCurrent((c) => letters(c).slice(0, -1).join(''));
     if (letters(current).length < WORD_LENGTH) setCurrent((c) => c + upper(key, lang));
+  };
+
+  const openExtra = () => {
+    setShowStats(false);
+    setShowExtra(true);
+  };
+
+  const startExtra = async () => {
+    setShowExtra(false);
+    setShowStats(false);
+    if (bonus?.status !== 'playing') {
+      if (credits < 1) return;
+      setCredits(await changeCredits(-1));
+      const next: BonusState = {
+        ...nextBonus(lang, bonus ? bonus.index + 1 : 0, day),
+        guesses: [],
+        status: 'playing',
+      };
+      setBonus(next);
+      saveBonus(lang, next);
+    }
+    setCurrent('');
+    setMode('bonus');
+  };
+
+  const backToDaily = () => {
+    setShowExtra(false);
+    setCurrent('');
+    setMode('daily');
+  };
+
+  const buy = (id: PackId) => {
+    if (!store?.available) return flash(t.storeUnavailable);
+    store.buy(id).catch(() => flash(t.purchaseFailed));
   };
 
   const pickLang = (next: Lang) => {
@@ -192,7 +281,7 @@ function Game() {
     Share.share({ message: shareText(lang, day, game.guesses, answer, game.status === 'won') });
   };
 
-  const keyMarks = keyboardMarks(game.guesses, answer);
+  const keyMarks = keyboardMarks(board.guesses, answer);
   // A streak only counts if the last win was today or yesterday.
   const liveStreak = stats.lastWonDay !== null && stats.lastWonDay >= day - 1 ? stats.streak : 0;
 
@@ -202,7 +291,14 @@ function Game() {
 
       <View style={styles.header}>
         <IconButton label="?" onPress={() => setShowHelp(true)} />
-        <Text style={styles.title}>KELİMO</Text>
+        <View style={styles.titleBox}>
+          <Text style={styles.title}>KELİMO</Text>
+          {inBonus && (
+            <Pressable onPress={backToDaily} hitSlop={6}>
+              <Text style={styles.bonusPill}>{fill(t.bonus, bonus.index + 1)} ✕</Text>
+            </Pressable>
+          )}
+        </View>
         <View style={styles.headerRight}>
           <IconButton label={lang.toUpperCase()} onPress={() => setShowLang(true)} />
           <IconButton label="📊" onPress={() => setShowStats(true)} />
@@ -211,8 +307,8 @@ function Game() {
 
       <View style={styles.board}>
         {Array.from({ length: MAX_GUESSES }, (_, row) => {
-          const guess = game.guesses[row];
-          const isCurrent = row === game.guesses.length && game.status === 'playing';
+          const guess = board.guesses[row];
+          const isCurrent = row === board.guesses.length && board.status === 'playing';
           const rowLetters = letters(guess ?? (isCurrent ? current : ''));
           const marks = guess ? evaluate(guess, answer) : null;
           return (
@@ -343,6 +439,50 @@ function Game() {
             </Pressable>
           </View>
         )}
+        {game.status !== 'playing' && (
+          <Pressable style={styles.extraButton} onPress={openExtra}>
+            <Text style={styles.extraButtonText}>＋ {t.playExtra}</Text>
+          </Pressable>
+        )}
+      </Sheet>
+
+      <Sheet visible={showExtra} onClose={() => setShowExtra(false)} title={t.shopTitle} closeLabel={t.close}>
+        {inBonus && bonus.status !== 'playing' && (
+          <Text style={[styles.body, styles.center, styles.bold]}>
+            {bonus.status === 'won' ? t.win[bonus.guesses.length - 1] : `${t.answerWas}: ${answer}`}
+          </Text>
+        )}
+        {!inBonus && <Text style={[styles.body, styles.center]}>{t.doneToday}</Text>}
+        <Text style={[styles.statLabel, styles.center]}>{fill(t.credits, credits)}</Text>
+        {bonus?.status === 'playing' || credits > 0 ? (
+          <Pressable style={styles.extraButton} onPress={startExtra}>
+            <Text style={styles.extraButtonText}>
+              {bonus?.status === 'playing' ? t.continueExtra : t.playExtra} →
+            </Text>
+          </Pressable>
+        ) : (
+          <>
+            {PACKS.map((pack, i) => (
+              <Pressable key={pack.id} style={styles.packRow} onPress={() => buy(pack.id)}>
+                <View>
+                  <Text style={styles.packWords}>{pack.words === 1 ? t.pack1 : fill(t.pack, pack.words)}</Text>
+                  {i === PACKS.length - 1 && <Text style={styles.packBadge}>{t.bestValue}</Text>}
+                </View>
+                <Text style={styles.packPrice}>{store?.prices[pack.id] ?? pack.fallbackPrice}</Text>
+              </Pressable>
+            ))}
+            <View style={{ alignItems: 'center', marginTop: 4 }}>
+              <Text style={styles.statLabel}>{t.orWait}</Text>
+              <Countdown />
+            </View>
+          </>
+        )}
+        {inBonus && (
+          <Pressable style={styles.secondaryButton} onPress={backToDaily}>
+            <Text style={styles.secondaryText}>{t.backToDaily}</Text>
+          </Pressable>
+        )}
+        {store?.demo && <Text style={[styles.statLabel, styles.center, styles.muted]}>{t.demo}</Text>}
       </Sheet>
     </SafeAreaView>
   );
@@ -422,7 +562,52 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   headerRight: { flexDirection: 'row', gap: 4 },
+  titleBox: { alignItems: 'center' },
   title: { color: COLORS.text, fontSize: 26, fontWeight: '800', letterSpacing: 2 },
+  bonusPill: {
+    color: COLORS.bg,
+    backgroundColor: COLORS.present,
+    fontSize: 12,
+    fontWeight: '800',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginTop: 2,
+  },
+  center: { textAlign: 'center' },
+  muted: { color: COLORS.muted },
+  extraButton: {
+    backgroundColor: COLORS.present,
+    borderRadius: 24,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  extraButtonText: { color: COLORS.text, fontSize: 17, fontWeight: '800' },
+  secondaryButton: { alignItems: 'center', paddingVertical: 8 },
+  secondaryText: { color: COLORS.text, fontSize: 15, fontWeight: '700', textDecorationLine: 'underline' },
+  packRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.border,
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  packWords: { color: COLORS.text, fontSize: 17, fontWeight: '800' },
+  packBadge: { color: COLORS.present, fontSize: 12, fontWeight: '800' },
+  packPrice: {
+    color: COLORS.text,
+    backgroundColor: COLORS.correct,
+    fontSize: 16,
+    fontWeight: '800',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
   iconButton: { minWidth: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   iconText: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
   board: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 6 },

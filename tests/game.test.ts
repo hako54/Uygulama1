@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { LANGS, Lang, matchLang, dayNumber, evaluate, isValidWord, letters, shareText, upper, wordForDay } from '../src/game';
+import { BONUS_SKIP_DAYS, LANGS, Lang, matchLang, nextBonus, dayNumber, evaluate, isValidWord, letters, shareText, upper, wordForDay } from '../src/game';
 import { recordResult, emptyStats } from '../src/storage';
 import { WORDS } from '../src/words';
 
@@ -96,5 +96,23 @@ test('every answer can be typed on its keyboard', async () => {
   for (const lang of LANGS) {
     const keys = new Set(KEYBOARD[lang].flat());
     for (const w of WORDS[lang]) for (const ch of letters(w)) assert.ok(keys.has(ch), `${lang}: ${w}`);
+  }
+});
+
+test('extra words never reveal the next two months of daily words', () => {
+  for (const lang of LANGS) {
+    for (const day of [0, 282, 1000]) {
+      const upcoming = new Set(Array.from({ length: BONUS_SKIP_DAYS }, (_, d) => wordForDay(lang, day + d)));
+      let index = 0;
+      const seen = new Set<string>();
+      for (let k = 0; k < 50; k++) {
+        const pick = nextBonus(lang, index, day);
+        assert.ok(pick.index >= index);
+        assert.ok(!upcoming.has(pick.word), `${lang} day ${day}: ${pick.word}`);
+        seen.add(pick.word);
+        index = pick.index + 1;
+      }
+      assert.equal(seen.size, 50, `${lang}: extra words repeat`);
+    }
   }
 });

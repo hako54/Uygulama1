@@ -9,6 +9,14 @@ export interface GameState {
   status: Status;
 }
 
+/** A paid extra word; `index` counts this language's extra words from 0. */
+export interface BonusState {
+  index: number;
+  word: string;
+  guesses: string[];
+  status: Status;
+}
+
 export interface Stats {
   played: number;
   won: number;
@@ -52,6 +60,32 @@ export const loadLang = () => load<Lang>('lang');
 export const saveLang = (l: Lang) => save('lang', l);
 export const loadSeenHelp = () => load<boolean>('seenHelp');
 export const saveSeenHelp = () => save('seenHelp', true);
+
+export const loadBonus = (lang: Lang) => load<BonusState>(`bonus:${lang}`);
+export const saveBonus = (lang: Lang, s: BonusState) => save(`bonus:${lang}`, s);
+
+// Credits are shared by all languages. Updates are chained so a purchase landing while a
+// word is being spent can't lose either change.
+let creditQueue: Promise<number> = Promise.resolve(0);
+
+export const loadCredits = async () => (await load<number>('credits')) ?? 0;
+
+export function changeCredits(delta: number): Promise<number> {
+  creditQueue = creditQueue.then(async () => {
+    const next = Math.max(0, (await loadCredits()) + delta);
+    await save('credits', next);
+    return next;
+  });
+  return creditQueue;
+}
+
+/** Remembers handled store transactions so a replayed one isn't credited twice. */
+export async function markPurchaseHandled(id: string): Promise<boolean> {
+  const handled = (await load<string[]>('purchases')) ?? [];
+  if (handled.includes(id)) return false;
+  await save('purchases', [...handled, id].slice(-200));
+  return true;
+}
 
 export function recordResult(stats: Stats, day: number, won: boolean, guessCount: number): Stats {
   const next = { ...stats, distribution: [...stats.distribution] };
