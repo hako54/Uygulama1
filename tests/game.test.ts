@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { dayNumber, evaluate, isValidWord, letters, shareText, upper, wordForDay } from '../src/game';
+import { LANGS, Lang, matchLang, dayNumber, evaluate, isValidWord, letters, shareText, upper, wordForDay } from '../src/game';
 import { recordResult, emptyStats } from '../src/storage';
 import { WORDS } from '../src/words';
 
@@ -10,7 +10,7 @@ test('every answer is 5 unique uppercase letters', () => {
   for (const [lang, list] of Object.entries(WORDS)) {
     for (const w of list) {
       assert.equal(letters(w).length, 5, `${lang}: ${w}`);
-      assert.equal(upper(w, lang as 'tr' | 'en'), w, `${lang}: ${w} not uppercase`);
+      assert.equal(upper(w, lang as Lang), w, `${lang}: ${w} not uppercase`);
     }
     assert.equal(new Set(list).size, list.length, `${lang} has duplicates`);
   }
@@ -21,8 +21,12 @@ test('answer lists last at least two years', () => {
   assert.ok(WORDS.en.length >= 730, `en: ${WORDS.en.length}`);
 });
 
+test('newer languages have at least a year of answers', () => {
+  for (const lang of LANGS) assert.ok(WORDS[lang].length >= 365, `${lang}: ${WORDS[lang].length}`);
+});
+
 test('daily words cycle through the whole list without repeats', () => {
-  for (const lang of ['tr', 'en'] as const) {
+  for (const lang of LANGS) {
     const n = WORDS[lang].length;
     const seen = new Set(Array.from({ length: n }, (_, d) => wordForDay(lang, d)));
     assert.equal(seen.size, n);
@@ -60,7 +64,7 @@ test('streaks', () => {
 });
 
 test('share text', () => {
-  assert.equal(shareText(0, ['CRANE'], 'CRANE', true), 'Kelimo #1 1/6\n\n🟩🟩🟩🟩🟩');
+  assert.equal(shareText('en', 0, ['CRANE'], 'CRANE', true), 'Kelimo EN #1 1/6\n\n🟩🟩🟩🟩🟩');
 });
 
 test('dictionary check', () => {
@@ -70,7 +74,27 @@ test('dictionary check', () => {
   assert.ok(!isValidWord('KALEM', 'en'));
   assert.ok(isValidWord('CRANE', 'en'));
   assert.ok(!isValidWord('XQZVW', 'en'));
-  for (const lang of ['tr', 'en'] as const) {
+  assert.ok(isValidWord('ARAÑA', 'es'));
+  assert.ok(WORDS.es.includes('ARAÑA') && !WORDS.es.includes('ARANA'));
+  assert.ok(isValidWord('KAESE', 'de'));
+  assert.ok(isValidWord('ECOLE', 'fr'));
+  assert.ok(isValidWord('AVIAO', 'pt'));
+  for (const lang of LANGS) {
     for (const w of WORDS[lang]) assert.ok(isValidWord(w, lang), `${lang}: ${w}`);
+  }
+});
+
+test('device locale picks a supported language', () => {
+  assert.equal(matchLang('tr-TR'), 'tr');
+  assert.equal(matchLang('pt-BR'), 'pt');
+  assert.equal(matchLang('de'), 'de');
+  assert.equal(matchLang('ja-JP'), 'en');
+});
+
+test('every answer can be typed on its keyboard', async () => {
+  const { KEYBOARD } = await import('../src/i18n');
+  for (const lang of LANGS) {
+    const keys = new Set(KEYBOARD[lang].flat());
+    for (const w of WORDS[lang]) for (const ch of letters(w)) assert.ok(keys.has(ch), `${lang}: ${w}`);
   }
 });

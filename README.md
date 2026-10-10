@@ -3,10 +3,21 @@
 Android ve iOS için Wordle tarzı, basit bir günlük kelime oyunu. Tek kod tabanı (Expo / React Native).
 
 - Her gün herkese aynı 5 harfli kelime, 6 deneme hakkı
-- Türkçe ve İngilizce (cihaz diline göre otomatik, sağ üstten değiştirilebilir)
+- 6 dil: Türkçe, English, Español, Português, Français, Deutsch — cihaz diline göre otomatik seçilir,
+  sağ üstten değiştirilir; her dilin kendi klavyesi var (QWERTY, AZERTY, QWERTZ, Ñ, Türkçe harfler)
 - İstatistikler, seri (streak), tahmin dağılımı
-- Uzun cevap listeleri: Türkçe 1.681 (~4,5 yıl), İngilizce 823 (~2,3 yıl) günlük kelime
-- Sözlük kontrolü: yalnızca gerçek kelimeler tahmin olarak kabul edilir (TR 5.522, EN 12.653 kelime)
+- Sözlük kontrolü: yalnızca gerçek kelimeler tahmin olarak kabul edilir
+
+| Dil | Günlük cevap | Yetme süresi | Kabul edilen tahmin |
+| --- | --- | --- | --- |
+| Türkçe | 1.681 | ~4,6 yıl | 5.522 |
+| English | 823 | ~2,3 yıl | 12.653 |
+| Español | 688 | ~1,9 yıl | 10.836 |
+| Português | 481 | ~1,3 yıl | 16.459 |
+| Français | 474 | ~1,3 yıl | 5.891 |
+| Deutsch | 428 | ~1,2 yıl | 6.748 |
+
+Aksanlar yok sayılır (É = E, Ç = C); İspanyolcada Ñ ayrı harftir, Almancada umlautlar açık yazılır (Ä = AE, ß = SS).
 - Emoji sonuç paylaşımı (🟩🟨⬛) — uygulamanın viral büyüme motoru
 - İnternet ve hesap gerektirmez, veriler cihazda saklanır
 
@@ -41,7 +52,8 @@ ve `assets/` altındaki simgeleri kendi tasarımınızla değiştirin.
 | `src/game.ts` | Günün kelimesi, puanlama, paylaşım metni |
 | `src/words.ts` | Günün kelimesi olabilecek cevaplar (otomatik üretilir) |
 | `src/dictionary.ts` | Kabul edilen tahminler (otomatik üretilir) |
-| `scripts/build-words.mjs` | İki listeyi üretir, hariç tutulan kelimeler burada: `npm run build:words` |
+| `scripts/build-words.mjs` | İki listeyi üretir: `npm run build:words` |
+| `scripts/words/` | Dil başına elle seçilmiş cevaplar (`*.curated.txt`) ve hariç tutulanlar (`*.exclude.txt`) |
 | `src/storage.ts` | Oyun durumu ve istatistiklerin cihazda saklanması |
 | `src/i18n.ts` | Metinler ve klavye düzenleri |
 
@@ -49,7 +61,8 @@ ve `assets/` altındaki simgeleri kendi tasarımınızla değiştirin.
 
 1. **Çekimli kelimeler:** Türkçe sözlük TDK madde başlıklarından oluşur; "evler", "geldi" gibi çekimli
    haller şu an kabul edilmiyor. Gerekirse temiz bir çekimli kelime listesi eklenebilir.
-2. **Daha fazla dil:** İspanyolca, Portekizce, Almanca, Fransızca vb. — dünya çapında ilk 100 için şart.
+2. **Cevap listelerini büyütmek:** Portekizce, Fransızca ve Almanca listeler ~1,2–1,3 yıl yetiyor;
+   bir yıl dolmadan sonlarına yeni kelimeler eklenmeli. Yeni diller (İtalyanca, Endonezce…) eklenebilir.
 3. **Bildirimler:** "Günün kelimesi hazır" hatırlatması (`expo-notifications`).
 4. **Uygulama simgesi, mağaza ekran görüntüleri ve ASO** (mağaza başlığı/açıklaması/anahtar kelimeler).
 5. **Gelir:** Reklam (AdMob) veya reklamsız sürüm için uygulama içi satın alma.
@@ -59,6 +72,11 @@ ve `assets/` altındaki simgeleri kendi tasarımınızla değiştirin.
 - Türkçe: [wordle-tr-dictionary](https://www.npmjs.com/package/wordle-tr-dictionary) (TDK tabanlı, MIT)
 - İngilizce: [an-array-of-english-words](https://www.npmjs.com/package/an-array-of-english-words) (Letterpress listesi, MIT)
   ve [wordlist-english](https://www.npmjs.com/package/wordlist-english) (SCOWL, en yaygın kelimeler, MIT)
+- İspanyolca / Fransızca: [an-array-of-spanish-words](https://www.npmjs.com/package/an-array-of-spanish-words),
+  [an-array-of-french-words](https://www.npmjs.com/package/an-array-of-french-words) (Letterpress, MIT)
+- Portekizce: [an-array-of-portuguese-words](https://www.npmjs.com/package/an-array-of-portuguese-words) (MIT)
+- Almanca: [all-the-german-words-ascii](https://www.npmjs.com/package/all-the-german-words-ascii) (MIT)
+- İspanyolca, Portekizce, Fransızca cevaplar ayrıca [bip39](https://www.npmjs.com/package/bip39) kelime listelerinden (ISC)
 
 > Uygulama yayınlandıktan sonra cevap listesine yalnızca **ekleme** yapın; mevcut kelimeleri
 > değiştirmek ya da silmek günlük kelime sırasını değiştirir.

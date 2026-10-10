@@ -1,7 +1,23 @@
 import { DICTIONARY } from './dictionary';
 import { WORDS } from './words';
 
-export type Lang = 'tr' | 'en';
+export const LANGS = ['tr', 'en', 'es', 'pt', 'fr', 'de'] as const;
+export type Lang = (typeof LANGS)[number];
+
+export const LANG_NAMES: Record<Lang, string> = {
+  tr: 'Türkçe',
+  en: 'English',
+  es: 'Español',
+  pt: 'Português',
+  fr: 'Français',
+  de: 'Deutsch',
+};
+
+/** Picks the device language when we support it, English otherwise. */
+export function matchLang(locale: string): Lang {
+  const code = locale.slice(0, 2).toLowerCase();
+  return (LANGS as readonly string[]).includes(code) ? (code as Lang) : 'en';
+}
 export type Mark = 'correct' | 'present' | 'absent';
 
 export const WORD_LENGTH = 5;
@@ -19,13 +35,23 @@ export function dayNumber(date = new Date()): number {
   return Math.floor((local - EPOCH) / 86_400_000);
 }
 
+// One fixed seed per language; changing one reshuffles that language's daily words.
+const SEEDS: Record<Lang, number> = {
+  tr: 0x6b656c69,
+  en: 0x6d6f2121,
+  es: 0x65737061,
+  pt: 0x706f7274,
+  fr: 0x6672616e,
+  de: 0x64657574,
+};
+
 const shuffled: Partial<Record<Lang, string[]>> = {};
 
 /** Fixed pseudo-random order (mulberry32 + Fisher–Yates) so neighbouring words don't follow each other. */
 function dailyOrder(lang: Lang): string[] {
   if (shuffled[lang]) return shuffled[lang];
   const list = [...WORDS[lang]];
-  let seed = lang === 'tr' ? 0x6b656c69 : 0x6d6f2121;
+  let seed = SEEDS[lang];
   const random = () => {
     seed = (seed + 0x6d2b79f5) | 0;
     let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
@@ -86,8 +112,8 @@ export function keyboardMarks(guesses: string[], answer: string): Record<string,
 
 const EMOJI: Record<Mark, string> = { correct: '🟩', present: '🟨', absent: '⬛' };
 
-export function shareText(day: number, guesses: string[], answer: string, won: boolean): string {
+export function shareText(lang: Lang, day: number, guesses: string[], answer: string, won: boolean): string {
   const score = won ? guesses.length : 'X';
   const grid = guesses.map((g) => evaluate(g, answer).map((m) => EMOJI[m]).join('')).join('\n');
-  return `Kelimo #${day + 1} ${score}/${MAX_GUESSES}\n\n${grid}`;
+  return `Kelimo ${lang.toUpperCase()} #${day + 1} ${score}/${MAX_GUESSES}\n\n${grid}`;
 }

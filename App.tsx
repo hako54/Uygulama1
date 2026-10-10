@@ -12,6 +12,8 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import {
+  LANGS,
+  LANG_NAMES,
   Lang,
   Mark,
   MAX_GUESSES,
@@ -21,6 +23,7 @@ import {
   isValidWord,
   keyboardMarks,
   letters,
+  matchLang,
   shareText,
   upper,
   wordForDay,
@@ -61,7 +64,7 @@ const MARK_COLOR: Record<Mark, string> = {
 
 function deviceLang(): Lang {
   try {
-    return Intl.DateTimeFormat().resolvedOptions().locale.startsWith('tr') ? 'tr' : 'en';
+    return matchLang(Intl.DateTimeFormat().resolvedOptions().locale);
   } catch {
     return 'en';
   }
@@ -84,6 +87,7 @@ function Game() {
   const [toast, setToast] = useState<string | null>(null);
   const [showStats, setShowStats] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showLang, setShowLang] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const shake = useRef(new Animated.Value(0)).current;
 
@@ -94,7 +98,7 @@ function Game() {
   useEffect(() => {
     (async () => {
       const saved = await loadLang();
-      if (saved) setLang(saved);
+      if (saved && LANGS.includes(saved)) setLang(saved);
       if (!(await loadSeenHelp())) setShowHelp(true);
     })();
   }, []);
@@ -173,8 +177,8 @@ function Game() {
     if (letters(current).length < WORD_LENGTH) setCurrent((c) => c + upper(key, lang));
   };
 
-  const switchLang = () => {
-    const next: Lang = lang === 'tr' ? 'en' : 'tr';
+  const pickLang = (next: Lang) => {
+    setShowLang(false);
     setLang(next);
     saveLang(next);
   };
@@ -185,7 +189,7 @@ function Game() {
   };
 
   const onShare = () => {
-    Share.share({ message: shareText(day, game.guesses, answer, game.status === 'won') });
+    Share.share({ message: shareText(lang, day, game.guesses, answer, game.status === 'won') });
   };
 
   const keyMarks = keyboardMarks(game.guesses, answer);
@@ -200,7 +204,7 @@ function Game() {
         <IconButton label="?" onPress={() => setShowHelp(true)} />
         <Text style={styles.title}>KELİMO</Text>
         <View style={styles.headerRight}>
-          <IconButton label={lang.toUpperCase()} onPress={switchLang} />
+          <IconButton label={lang.toUpperCase()} onPress={() => setShowLang(true)} />
           <IconButton label="📊" onPress={() => setShowStats(true)} />
         </View>
       </View>
@@ -269,6 +273,19 @@ function Game() {
           <Text style={styles.toastText}>{toast}</Text>
         </View>
       )}
+
+      <Sheet visible={showLang} onClose={() => setShowLang(false)} title={t.language} closeLabel={t.close}>
+        {LANGS.map((l) => (
+          <Pressable
+            key={l}
+            onPress={() => pickLang(l)}
+            style={[styles.langRow, l === lang && styles.langRowActive]}
+          >
+            <Text style={styles.langCode}>{l.toUpperCase()}</Text>
+            <Text style={styles.body}>{LANG_NAMES[l]}</Text>
+          </Pressable>
+        ))}
+      </Sheet>
 
       <Sheet visible={showHelp} onClose={closeHelp} title={t.howTo} closeLabel={t.play}>
         {t.rules.map((r) => (
@@ -464,6 +481,17 @@ const styles = StyleSheet.create({
   bold: { fontWeight: '700', marginTop: 6 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   legendTile: { width: 26, height: 26, borderRadius: 3 },
+  langRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: COLORS.border,
+  },
+  langRowActive: { backgroundColor: COLORS.correct },
+  langCode: { color: COLORS.text, fontWeight: '800', width: 28 },
   statRow: { flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center', flex: 1 },
   statValue: { color: COLORS.text, fontSize: 30, fontWeight: '600' },
