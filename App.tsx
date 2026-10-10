@@ -100,7 +100,7 @@ function Game() {
   const [showStats, setShowStats] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showLang, setShowLang] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [mode, setMode] = useState<'daily' | 'bonus'>('daily');
   const [bonus, setBonus] = useState<BonusState | null>(null);
   const [credits, setCredits] = useState(0);
@@ -108,11 +108,22 @@ function Game() {
   const [showExtra, setShowExtra] = useState(false);
   const [reminderPref, setReminderPref] = useState<ReminderPref | null | undefined>(undefined);
   const [showAsk, setShowAsk] = useState(false);
-  const shake = useRef(new Animated.Value(0)).current;
+  // useAnimatedValue would be simpler but react-native-web does not provide it.
+  const [shake] = useState(() => new Animated.Value(0));
 
   const t = STRINGS[lang];
+  // Store callbacks outlive renders; they read the current language's strings through this ref.
   const tRef = useRef(t);
-  tRef.current = t;
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
+  // Today's progress counts as loaded only once it matches the current language and day.
+  const loaded = loadedKey === `${lang}:${day}`;
+
+  const flash = useCallback((msg: string, ms = 1500) => {
+    setToast(msg);
+    setTimeout(() => setToast((m) => (m === msg ? null : m)), ms);
+  }, []);
   const inBonus = mode === 'bonus' && bonus !== null;
   // The board shows either today's free word or the current paid extra word.
   const board = inBonus ? bonus : game;
@@ -135,7 +146,7 @@ function Game() {
     const messages =
       reminderPref === 'on' ? { title: 'Kelimo', bodies: t.notifyBodies, channel: t.channel } : null;
     scheduleReminders(messages, game.status !== 'playing');
-  }, [loaded, reminderPref, lang, day, game.status]);
+  }, [loaded, reminderPref, t, day, game.status]);
 
   // Connect to the App Store / Google Play for the extra word packs.
   useEffect(() => {
@@ -155,12 +166,11 @@ function Game() {
       closed = true;
       active?.close();
     };
-  }, []);
+  }, [flash]);
 
   // Load today's game and stats whenever the language or day changes.
   useEffect(() => {
     let cancelled = false;
-    setLoaded(false);
     (async () => {
       const [savedGame, savedStats, savedBonus] = await Promise.all([
         loadGame(lang),
@@ -173,7 +183,7 @@ function Game() {
       setBonus(savedBonus);
       setMode('daily');
       setCurrent('');
-      setLoaded(true);
+      setLoadedKey(`${lang}:${day}`);
     })();
     return () => {
       cancelled = true;
@@ -188,11 +198,6 @@ function Game() {
     }, 30_000);
     return () => clearInterval(id);
   }, [day]);
-
-  const flash = useCallback((msg: string, ms = 1500) => {
-    setToast(msg);
-    setTimeout(() => setToast((m) => (m === msg ? null : m)), ms);
-  }, []);
 
   const doShake = () => {
     shake.setValue(0);
@@ -334,7 +339,7 @@ function Game() {
           )}
         </View>
         <View style={styles.titleBox}>
-          <Text style={styles.title}>KELİMO</Text>
+          <Text style={styles.title}>{lang === 'tr' ? 'KELİMO' : 'KELIMO'}</Text>
           {inBonus && (
             <Pressable onPress={backToDaily} hitSlop={6}>
               <Text style={styles.bonusPill}>{fill(t.bonus, bonus.index + 1)} ✕</Text>

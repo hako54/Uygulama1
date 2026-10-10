@@ -30,6 +30,7 @@ npm install
 npm start        # QR kodu telefondaki Expo Go uygulamasıyla okut
 npm test         # oyun mantığı testleri
 npx tsc --noEmit # tip kontrolü
+npm run lint     # ESLint
 ```
 
 ## Mağazalara yükleme (EAS)
@@ -80,6 +81,25 @@ Kurulum:
 Bilinen sınırlamalar: haklar cihazda saklanır, uygulama silinirse kullanılmamış haklar kaybolur;
 satın almalar sunucuda doğrulanmaz (düşük fiyatlı tüketilebilir ürün için kabul edilebilir risk).
 
+## Mağaza sayfası
+
+| Dosya | İçerik |
+| --- | --- |
+| `assets/` | Simge seti (iOS, Android uyarlanabilir + tek renkli, açılış ekranı, favicon) |
+| `store/listing.json` | 6 dilde ad, alt başlık, tanıtım metni, anahtar kelimeler, kısa/uzun açıklama |
+| `store/screenshots/ios/<dil>/` | App Store ekran görüntüleri, 1290×2796 (6,7"/6,9" iPhone) |
+| `store/screenshots/android/<dil>/` | Google Play ekran görüntüleri, 1080×1920 |
+
+- Simgeleri yeniden üretmek: `npm run brand:icons` (tasarım `scripts/brand/render-icons.cjs` içinde).
+- Ekran görüntülerini yeniden üretmek: web derlemesini sunup
+  `npm run brand:screenshots -- http://localhost:4567` (ayrıntılar betiğin başında).
+- `store/listing.json` alanları mağaza sınırlarına göre test edilir (ad/alt başlık 30, anahtar kelimeler
+  100, kısa açıklama 80, uzun açıklama 4000 karakter) ve başka ürün adı içermemesi kontrol edilir.
+- **Gizlilik formu:** Uygulama kişisel veri toplamaz. App Store'da "Data Not Collected",
+  Google Play'de "Veri toplanmıyor/paylaşılmıyor" seçilebilir; yine de bir gizlilik politikası URL'si
+  (basit bir sayfa yeterli) iki mağaza için de zorunludur.
+- Ekran görüntülerindeki istatistikler (47 oyun, 13 seri…) tanıtım amaçlı örnek verilerdir.
+
 ## Kod yapısı
 
 | Dosya | İçerik |
@@ -101,7 +121,7 @@ satın almalar sunucuda doğrulanmaz (düşük fiyatlı tüketilebilir ürün i�
    haller şu an kabul edilmiyor. Gerekirse temiz bir çekimli kelime listesi eklenebilir.
 2. **Cevap listelerini büyütmek:** Portekizce, Fransızca ve Almanca listeler ~1,2–1,3 yıl yetiyor;
    bir yıl dolmadan sonlarına yeni kelimeler eklenmeli. Yeni diller (İtalyanca, Endonezce…) eklenebilir.
-3. **Uygulama simgesi, mağaza ekran görüntüleri ve ASO** (mağaza başlığı/açıklaması/anahtar kelimeler).
+3. **Gizlilik politikası sayfası** ve mağaza hesaplarının açılması (yayın için son adımlar).
 4. **Gelir:** Ekstra kelime satışı hazır; ek olarak ödüllü reklam (reklam izle → 1 ekstra kelime) eklenebilir.
 
 ## Kelime listesi kaynakları

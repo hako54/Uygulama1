@@ -27,13 +27,17 @@
       "favicon": "./assets/favicon.png"
     },
     "backgroundColor": "#121213",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#121213"
-    },
     "plugins": [
-      "expo-iap"
+      "expo-iap",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#121213"
+        }
+      ]
     ]
   }
 }

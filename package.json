@@ -7,7 +7,9 @@
     "expo": "~57.0.27",
     "expo-iap": "5.8.3",
     "expo-notifications": "~57.0.22",
+    "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -23,6 +25,9 @@
     "an-array-of-portuguese-words": "1.2.0",
     "an-array-of-spanish-words": "2.0.0",
     "bip39": "3.1.0",
+    "eslint": "^9.0.0",
+    "eslint-config-expo": "~57.0.2",
+    "playwright": "1.56.1",
     "tsx": "4.23.15",
     "typescript": "~6.0.3",
     "wordle-tr-dictionary": "1.0.0",
@@ -34,7 +39,10 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "tsx --test tests/*.test.ts",
-    "build:words": "node scripts/build-words.mjs"
+    "build:words": "node scripts/build-words.mjs",
+    "lint": "expo lint",
+    "brand:icons": "node scripts/brand/render-icons.cjs",
+    "brand:screenshots": "tsx scripts/brand/render-screenshots.ts"
   },
   "private": true
 }
