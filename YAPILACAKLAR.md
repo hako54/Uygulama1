@@ -34,8 +34,10 @@ Durum: `[x]` bitti · `[ ]` sırada · `[~]` başladı, yarım · `[-]` bilinçl
    görüntüleri (13" iPad, 2064×2752). iPad desteği açık olduğu için App Store bunları zorunlu tutar.
    Kartlar ve klavye ekran boyutuna göre ölçeklenir (iPhone SE'den iPad yatay ve Split View'e kadar
    test edildi); iPad ekran görüntüleri `store/screenshots/ipad/`.
-6. [ ] **Uygulama içi bağlantılar ve destek sayfası:** yardım ekranına "Gizlilik" ve "Destek"
+6. [x] **Uygulama içi bağlantılar ve destek sayfası:** yardım ekranına "Gizlilik" ve "Destek"
    bağlantıları; App Store'un zorunlu tuttuğu destek sayfası (`docs/support.html`, SSS dahil).
+   Sayfalar `docs/` içinde; uygulama `https://hako54.github.io/Uygulama1/` adresine bağlanır
+   (adres `src/links.ts`).
 7. [ ] **Mağaza başvuru yanıtları:** App Store yaş derecelendirmesi, kategori, App Privacy, Google Play
    içerik derecelendirmesi ve Veri güvenliği formu için hazır yanıtlar (`store/basvuru.md`).
 8. [ ] **Zor mod (öneri):** bulunan ipuçlarını sonraki tahminlerde kullanma zorunluluğu. Kelime
@@ -46,8 +48,8 @@ Durum: `[x]` bitti · `[ ]` sırada · `[~]` başladı, yarım · `[-]` bilinçl
 ## Bölüm 2 — Sizin yapmanız gerekenler (hesap / karar)
 
 10. [ ] İletişim e-posta adresi açılması (gizlilik ve destek sayfalarına yazılacak)
-11. [ ] Gizlilik ve destek sayfalarının herkese açık bir adreste yayınlanması (GitHub Pages, Netlify Drop
-    ya da sayfanın Paylaş menüsü)
+11. [ ] GitHub Pages'in açılması (tek ayar, README'de "Herkese açık sayfalar"): depo → Settings → Pages →
+    Deploy from a branch → `/docs`. Gizlilik ve destek sayfaları böylece herkese açık olur
 12. [ ] Paket kimliğinin seçilmesi (`com.kelimo.app` yerine size ait bir kimlik, ör. `com.adiniz.kelimo`)
 13. [ ] Cevap listelerinin ve çevirilerin anadili konuşan biri tarafından gözden geçirilmesi
     (özellikle Almanca)

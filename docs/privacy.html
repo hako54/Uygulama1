@@ -8,87 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
-<style>
-  /* Layout: one readable column; the game's tile colours mark the header and the data table. */
-  :root {
-    --bg: #f6f7f4;
-    --surface: #ffffff;
-    --fg: #1c1f1b;
-    --muted: #5d6459;
-    --line: #dde1d8;
-    --green: #4a7d45;
-    --yellow: #b59f3b;
-    --grey: #787c75;
-    --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
-    --body: "Source Serif 4", Georgia, "Times New Roman", serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #121213; --surface: #1c1c1e; --fg: #ecede9; --muted: #a2a79d; --line: #33352f;
-      --green: #6aa864; --yellow: #c9b458; --grey: #8b8f88; color-scheme: dark;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg: #121213; --surface: #1c1c1e; --fg: #ecede9; --muted: #a2a79d; --line: #33352f;
-    --green: #6aa864; --yellow: #c9b458; --grey: #8b8f88; color-scheme: dark;
-  }
-
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--fg);
-    font: 400 1.0625rem/1.65 var(--body);
-    padding-inline: 16px;
-    padding-block: 32px 64px;
-  }
-  main { max-width: 42rem; margin: 0 auto; display: grid; gap: 3.5rem; }
-  h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance; margin: 0; }
-  h1 { font-size: clamp(2rem, 6vw, 2.75rem); font-weight: 800; letter-spacing: -0.02em; }
-  h2 { font-size: 1.35rem; font-weight: 800; margin-top: 2.25rem; }
-  h3 { font-size: 1.05rem; font-weight: 600; }
-  p, ul { margin: 0.75rem 0 0; }
-  ul { padding-left: 1.2rem; }
-  li + li { margin-top: 0.35rem; }
-  a { color: var(--green); text-underline-offset: 3px; }
-  a:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; border-radius: 2px; }
-
-  .masthead { display: grid; gap: 1rem; }
-  .tiles { display: flex; gap: 6px; }
-  .tiles span {
-    width: 34px; height: 34px; display: grid; place-items: center; border-radius: 4px;
-    font: 800 1.1rem var(--display); color: #fff;
-  }
-  .t-g { background: var(--green); } .t-y { background: var(--yellow); } .t-x { background: var(--grey); }
-  .meta { font-family: var(--display); font-size: 0.9rem; color: var(--muted); }
-  .langs { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-  .langs a {
-    font-family: var(--display); font-weight: 600; font-size: 0.9rem; text-decoration: none;
-    padding: 0.35rem 0.8rem; border: 1px solid var(--line); border-radius: 999px; color: var(--fg);
-  }
-
-  .summary {
-    background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--green);
-    border-radius: 6px; padding: 1rem 1.25rem; margin-top: 1.25rem;
-  }
-  .summary p:first-child { margin-top: 0; font-weight: 600; }
-
-  .table-wrap { overflow-x: auto; margin-top: 1rem; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-  th, td { text-align: left; vertical-align: top; padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--line); }
-  th {
-    font-family: var(--display); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--muted);
-  }
-  td:first-child { font-weight: 600; min-width: 9rem; }
-
-  .placeholder {
-    background: color-mix(in srgb, var(--yellow) 25%, transparent);
-    padding: 0 0.3em; border-radius: 3px; font-family: var(--display); font-size: 0.95em;
-  }
-  section + section { border-top: 1px solid var(--line); padding-top: 3.5rem; }
-  footer { font-family: var(--display); font-size: 0.85rem; color: var(--muted); }
-</style>
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
 <main>
@@ -196,7 +116,10 @@
     <p>Questions: <span class="placeholder">[contact email]</span></p>
   </section>
 
-  <footer>Kelimo · Günlük kelime oyunu · Daily word game</footer>
+  <footer class="sitenav">
+    <a href="index.html">Kelimo</a>
+    <a href="support.html">Destek · Support</a>
+  </footer>
 </main>
 </body>
 </html>

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   Animated,
+  Linking,
   Modal,
   Platform,
   Pressable,
@@ -40,6 +41,7 @@ import {
 import { KEYBOARD, STRINGS, fill } from './src/i18n';
 import { BOUNCE_STAGGER, FLIP_HALF, FLIP_STAGGER, REVEAL_MS, haptic, useReduceMotion } from './src/feel';
 import { Layout, computeLayout } from './src/layout';
+import { PRIVACY_URL, SUPPORT_URL } from './src/links';
 import { requestReminderPermission, scheduleReminders } from './src/reminders';
 import {
   BonusState,
@@ -583,7 +585,7 @@ function Game() {
         <View style={styles.settingRow}>
           <View style={styles.settingText}>
             <Text style={[styles.body, styles.bold]}>{t.contrastMode}</Text>
-            <Text style={[styles.statLabel, styles.muted]}>{t.contrastHint}</Text>
+            <Text style={[styles.statLabel, styles.muted, styles.left]}>{t.contrastHint}</Text>
           </View>
           <Switch
             value={contrast}
@@ -592,6 +594,10 @@ function Game() {
             trackColor={{ true: markColor.correct, false: COLORS.border }}
             thumbColor={COLORS.text}
           />
+        </View>
+        <View style={styles.links}>
+          <TextLink label={t.support} url={SUPPORT_URL} />
+          <TextLink label={t.privacy} url={PRIVACY_URL} />
         </View>
       </Sheet>
 
@@ -778,6 +784,18 @@ function IconButton({ label, a11y, onPress }: { label: string; a11y: string; onP
   );
 }
 
+function TextLink({ label, url }: { label: string; url: string }) {
+  return (
+    <Pressable
+      onPress={() => Linking.openURL(url).catch(() => {})}
+      accessibilityRole="link"
+      hitSlop={8}
+    >
+      <Text style={styles.link}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function Stat({ value, label }: { value: number; label: string }) {
   return (
     <View style={styles.stat}>
@@ -860,6 +878,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   center: { textAlign: 'center' },
+  left: { textAlign: 'left' },
   muted: { color: COLORS.muted },
   extraButton: {
     backgroundColor: COLORS.present,
@@ -955,6 +974,8 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
   },
   settingText: { flex: 1 },
+  links: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginTop: 4 },
+  link: { color: COLORS.muted, fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' },
   langRow: {
     flexDirection: 'row',
     alignItems: 'center',

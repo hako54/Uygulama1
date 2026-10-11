@@ -109,10 +109,15 @@ satın almalar sunucuda doğrulanmaz (düşük fiyatlı tüketilebilir ürün i�
   `npm run brand:screenshots -- http://localhost:4567` (ayrıntılar betiğin başında).
 - `store/listing.json` alanları mağaza sınırlarına göre test edilir (ad/alt başlık 30, anahtar kelimeler
   100, kısa açıklama 80, uzun açıklama 4000 karakter) ve başka ürün adı içermemesi kontrol edilir.
-- **Gizlilik politikası:** `docs/privacy.html` (Türkçe + İngilizce, tek dosya). Yayından önce
-  `[iletişim e-postası]` / `[contact email]` yer tutucularını gerçek bir adresle değiştirin ve dosyayı
-  herkese açık bir adreste yayınlayın (GitHub Pages, Netlify Drop vb.). Bu adres App Store Connect'te
-  *Privacy Policy URL*, Google Play'de *Gizlilik politikası* alanına girilir.
+- **Herkese açık sayfalar:** `docs/` klasörü (ana sayfa, `privacy.html`, `support.html`, ortak
+  `site.css`). Uygulamanın yardım ekranındaki bağlantılar `src/links.ts` içindeki adrese gider:
+  `https://hako54.github.io/Uygulama1/`. Yayınlamak için GitHub'da depo → *Settings* → *Pages* →
+  *Source: Deploy from a branch* → dal: `claude/kelimo-word-game` (ana dal değişirse o dal), klasör:
+  `/docs` → *Save*. Birkaç dakika sonra sayfalar açılır. Yayından önce `[iletişim e-postası]` /
+  `[contact email]` yer tutucularını gerçek adresle değiştirin.
+- **Mağaza adresleri:** App Store Connect'te *Privacy Policy URL* = `…/privacy.html`,
+  *Support URL* = `…/support.html`, *Marketing URL* (isteğe bağlı) = ana sayfa. Google Play'de
+  *Gizlilik politikası* = `…/privacy.html`.
 - **Gizlilik formları:** Uygulama kişisel veri toplamaz. App Store'da "Data Not Collected",
   Google Play'in *Veri güvenliği* formunda "Veri toplanmıyor / paylaşılmıyor" seçilebilir.
 - Ekran görüntülerindeki istatistikler (47 oyun, 13 seri…) tanıtım amaçlı örnek verilerdir.
