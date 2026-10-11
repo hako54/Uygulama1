@@ -108,9 +108,12 @@ satın almalar sunucuda doğrulanmaz (düşük fiyatlı tüketilebilir ürün i�
   `npm run brand:screenshots -- http://localhost:4567` (ayrıntılar betiğin başında).
 - `store/listing.json` alanları mağaza sınırlarına göre test edilir (ad/alt başlık 30, anahtar kelimeler
   100, kısa açıklama 80, uzun açıklama 4000 karakter) ve başka ürün adı içermemesi kontrol edilir.
-- **Gizlilik formu:** Uygulama kişisel veri toplamaz. App Store'da "Data Not Collected",
-  Google Play'de "Veri toplanmıyor/paylaşılmıyor" seçilebilir; yine de bir gizlilik politikası URL'si
-  (basit bir sayfa yeterli) iki mağaza için de zorunludur.
+- **Gizlilik politikası:** `docs/privacy.html` (Türkçe + İngilizce, tek dosya). Yayından önce
+  `[iletişim e-postası]` / `[contact email]` yer tutucularını gerçek bir adresle değiştirin ve dosyayı
+  herkese açık bir adreste yayınlayın (GitHub Pages, Netlify Drop vb.). Bu adres App Store Connect'te
+  *Privacy Policy URL*, Google Play'de *Gizlilik politikası* alanına girilir.
+- **Gizlilik formları:** Uygulama kişisel veri toplamaz. App Store'da "Data Not Collected",
+  Google Play'in *Veri güvenliği* formunda "Veri toplanmıyor / paylaşılmıyor" seçilebilir.
 - Ekran görüntülerindeki istatistikler (47 oyun, 13 seri…) tanıtım amaçlı örnek verilerdir.
 
 ## Kod yapısı
@@ -134,7 +137,7 @@ satın almalar sunucuda doğrulanmaz (düşük fiyatlı tüketilebilir ürün i�
    haller şu an kabul edilmiyor. Gerekirse temiz bir çekimli kelime listesi eklenebilir.
 2. **Cevap listelerini büyütmek:** Portekizce, Fransızca ve Almanca listeler ~1,2–1,3 yıl yetiyor;
    bir yıl dolmadan sonlarına yeni kelimeler eklenmeli. Yeni diller (İtalyanca, Endonezce…) eklenebilir.
-3. **Gizlilik politikası sayfası** ve mağaza hesaplarının açılması (yayın için son adımlar).
+3. **Mağaza hesaplarının açılması** ve gizlilik politikasının herkese açık bir adreste yayınlanması.
 4. **Gelir:** Ekstra kelime satışı hazır; ek olarak ödüllü reklam (reklam izle → 1 ekstra kelime) eklenebilir.
 
 ## Kelime listesi kaynakları
