@@ -33,6 +33,19 @@ npx tsc --noEmit # tip kontrolü
 npm run lint     # ESLint
 ```
 
+## Web test sürümü
+
+Telefon olmadan denemek için web derlemesi alınabilir. `EXPO_PUBLIC_DEMO_STORE=1` ile derlenirse ekstra
+kelime satın alma ücretsiz deneme moduna geçer (yalnızca test sürümleri için; mağaza derlemelerinde
+kullanmayın):
+
+```bash
+EXPO_PUBLIC_DEMO_STORE=1 npx expo export --platform web --output-dir dist
+npx serve -s dist
+```
+
+Web'de bildirimler yoktur ve Paylaş düğmesi sonucu panoya kopyalar.
+
 ## Mağazalara yükleme (EAS)
 
 Mac veya Android Studio gerekmez; derleme bulutta yapılır.

@@ -317,7 +317,16 @@ function Game() {
   };
 
   const onShare = () => {
-    Share.share({ message: shareText(lang, day, game.guesses, answer, game.status === 'won') });
+    const message = shareText(lang, day, game.guesses, answer, game.status === 'won');
+    // Browsers often refuse the share sheet; copying the result works everywhere.
+    if (Platform.OS === 'web') {
+      navigator.clipboard
+        ?.writeText(message)
+        .then(() => flash(t.copied))
+        .catch(() => flash(t.copyFailed));
+      return;
+    }
+    Share.share({ message });
   };
 
   const keyMarks = keyboardMarks(board.guesses, answer);

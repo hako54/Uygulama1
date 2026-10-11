@@ -86,7 +86,8 @@ export async function openStore(events: StoreEvents): Promise<Store> {
     }
   }
 
-  if (__DEV__) {
+  // Simulated purchases: development builds, or a web preview built with EXPO_PUBLIC_DEMO_STORE=1.
+  if (__DEV__ || process.env.EXPO_PUBLIC_DEMO_STORE === '1') {
     return {
       prices: {},
       demo: true,
