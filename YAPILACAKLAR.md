@@ -23,8 +23,9 @@ Durum: `[x]` bitti · `[ ]` sırada · `[~]` başladı, yarım · `[-]` bilinçl
    kenar durumları) ve bulunan hataların düzeltilmesi.
    Düzeltilenler: ekstra kelime oynarken istatistikten paylaşılan sonucun yanlış renklenmesi; mağaza
    fiyatları alınamayınca satın almanın tamamen kapanması.
-3. [ ] **Oyun hissi:** harf kartlarının çevrilme animasyonu, kazanınca zıplama, tuşlarda ve sonuçta
+3. [x] **Oyun hissi:** harf kartlarının çevrilme animasyonu, kazanınca zıplama, tuşlarda ve sonuçta
    titreşim (haptics). Bu tür oyunlarda oyuncuyu tutan en önemli ayrıntılardan biri.
+   Kartlar dönerken klavye renkleri ve sonuç mesajı gizli kalır; "Hareketi Azalt" açıksa animasyon yok.
 4. [ ] **Erişilebilirlik:** VoiceOver/TalkBack etiketleri, renk körleri için yüksek kontrast modu
    (yeşil/sarı yerine turuncu/mavi), iPad ve web'de fiziksel klavye ile oynama.
 5. [ ] **iPad:** iPad ekranında yerleşimin kontrolü ve iyileştirilmesi; App Store için iPad ekran

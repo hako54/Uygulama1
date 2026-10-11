@@ -31,6 +31,7 @@ import {
   wordForDay,
 } from './src/game';
 import { KEYBOARD, STRINGS, fill } from './src/i18n';
+import { BOUNCE_STAGGER, FLIP_HALF, FLIP_STAGGER, REVEAL_MS, haptic, useReduceMotion } from './src/feel';
 import { requestReminderPermission, scheduleReminders } from './src/reminders';
 import {
   BonusState,
@@ -110,6 +111,12 @@ function Game() {
   const [showAsk, setShowAsk] = useState(false);
   // useAnimatedValue would be simpler but react-native-web does not provide it.
   const [shake] = useState(() => new Animated.Value(0));
+  // Row whose tiles are flipping right now; input waits and the keyboard keeps its old colours.
+  const [revealRow, setRevealRow] = useState<number | null>(null);
+  // Identifies the winning row (mode, row and word) so only that row bounces.
+  const [bounceKey, setBounceKey] = useState<string | null>(null);
+  const reduceMotion = useReduceMotion();
+  const revealMs = reduceMotion ? 0 : REVEAL_MS;
 
   const t = STRINGS[lang];
   // Store callbacks outlive renders; they read the current language's strings through this ref.
@@ -200,6 +207,8 @@ function Game() {
   }, [day]);
 
   const doShake = () => {
+    haptic.invalid();
+    if (reduceMotion) return;
     shake.setValue(0);
     Animated.sequence(
       [10, -10, 8, -8, 0].map((v) =>
@@ -220,18 +229,34 @@ function Game() {
       return;
     }
     const guesses = [...board.guesses, current];
+    const row = guesses.length - 1;
     const won = current === answer;
     const lost = !won && guesses.length >= MAX_GUESSES;
     const status = won ? 'won' : lost ? 'lost' : 'playing';
     setCurrent('');
+    setRevealRow(row);
+
+    // The result is announced only once the last tile has flipped.
+    const showResult = (openSheet: () => void) => {
+      setTimeout(() => {
+        setRevealRow(null);
+        if (!won && !lost) return;
+        if (won) {
+          haptic.win();
+          setBounceKey(`${mode}:${row}:${current}`);
+        } else {
+          haptic.lose();
+        }
+        flash(won ? t.win[row] : `${t.answerWas}: ${answer}`, 2000);
+        setTimeout(openSheet, won && !reduceMotion ? 1400 : 1600);
+      }, revealMs);
+    };
+
     if (inBonus) {
       const next: BonusState = { ...bonus, guesses, status };
       setBonus(next);
       saveBonus(lang, next);
-      if (won || lost) {
-        flash(won ? t.win[guesses.length - 1] : `${t.answerWas}: ${answer}`, 2000);
-        setTimeout(() => setShowExtra(true), 1600);
-      }
+      showResult(() => setShowExtra(true));
       return;
     }
     const next: GameState = { day, guesses, status };
@@ -241,14 +266,14 @@ function Game() {
       const newStats = recordResult(stats, day, won, guesses.length);
       setStats(newStats);
       saveStats(lang, newStats);
-      flash(won ? t.win[guesses.length - 1] : `${t.answerWas}: ${answer}`, 2000);
-      setTimeout(() => setShowStats(true), 1600);
     }
+    showResult(() => setShowStats(true));
   };
 
   const onKey = (key: string) => {
-    if (!loaded || board.status !== 'playing') return;
+    if (!loaded || board.status !== 'playing' || revealRow !== null) return;
     if (key === 'ENTER') return submit();
+    haptic.key();
     if (key === 'DEL') return setCurrent((c) => letters(c).slice(0, -1).join(''));
     if (letters(current).length < WORD_LENGTH) setCurrent((c) => c + upper(key, lang));
   };
@@ -330,7 +355,11 @@ function Game() {
     Share.share({ message });
   };
 
-  const keyMarks = keyboardMarks(board.guesses, answer);
+  // Keys only take on the new row's colours after its tiles have flipped.
+  const keyMarks = keyboardMarks(
+    revealRow === null ? board.guesses : board.guesses.slice(0, revealRow),
+    answer,
+  );
   // A streak only counts if the last win was today or yesterday.
   const liveStreak = stats.lastWonDay !== null && stats.lastWonDay >= day - 1 ? stats.streak : 0;
 
@@ -373,22 +402,18 @@ function Game() {
               key={row}
               style={[styles.row, isCurrent && { transform: [{ translateX: shake }] }]}
             >
-              {Array.from({ length: WORD_LENGTH }, (_, col) => {
-                const ch = rowLetters[col] ?? '';
-                const mark = marks?.[col];
-                return (
-                  <View
-                    key={col}
-                    style={[
-                      styles.tile,
-                      ch && !mark && styles.tileFilled,
-                      mark && { backgroundColor: MARK_COLOR[mark], borderColor: MARK_COLOR[mark] },
-                    ]}
-                  >
-                    <Text style={styles.tileText}>{ch}</Text>
-                  </View>
-                );
-              })}
+              {Array.from({ length: WORD_LENGTH }, (_, col) => (
+                // A submitted guess remounts its tiles, which is what starts their flip.
+                <Tile
+                  key={`${col}:${guess ?? ''}`}
+                  ch={rowLetters[col] ?? ''}
+                  mark={marks?.[col]}
+                  flip={revealRow === row}
+                  bounce={guess !== undefined && bounceKey === `${mode}:${row}:${guess}`}
+                  col={col}
+                  animate={!reduceMotion}
+                />
+              ))}
             </Animated.View>
           );
         })}
@@ -550,6 +575,72 @@ function Game() {
         {store?.demo && <Text style={[styles.statLabel, styles.center, styles.muted]}>{t.demo}</Text>}
       </Sheet>
     </SafeAreaView>
+  );
+}
+
+const nativeDriver = Platform.OS !== 'web';
+
+/** One letter square: pops when typed, flips to reveal its colour, bounces on a win. */
+function Tile({
+  ch,
+  mark,
+  flip,
+  bounce,
+  col,
+  animate,
+}: {
+  ch: string;
+  mark?: Mark;
+  flip: boolean;
+  bounce: boolean;
+  col: number;
+  animate: boolean;
+}) {
+  const [turn] = useState(() => new Animated.Value(0));
+  const [lift] = useState(() => new Animated.Value(0));
+  const [scale] = useState(() => new Animated.Value(1));
+  const [flipped, setFlipped] = useState(false);
+  // While flipping, the colour appears only when the tile is edge-on.
+  const shown = !flip || !animate || flipped ? mark : undefined;
+
+  useEffect(() => {
+    if (!flip || !animate) return;
+    Animated.sequence([
+      Animated.delay(col * FLIP_STAGGER),
+      Animated.timing(turn, { toValue: 1, duration: FLIP_HALF, useNativeDriver: nativeDriver }),
+    ]).start(() => {
+      setFlipped(true);
+      Animated.timing(turn, { toValue: 0, duration: FLIP_HALF, useNativeDriver: nativeDriver }).start();
+    });
+  }, [flip, animate, col, turn]);
+
+  useEffect(() => {
+    if (!ch || mark || !animate) return;
+    scale.setValue(1.12);
+    Animated.spring(scale, { toValue: 1, friction: 4, useNativeDriver: nativeDriver }).start();
+  }, [ch, mark, animate, scale]);
+
+  useEffect(() => {
+    if (!bounce || !animate) return;
+    Animated.sequence([
+      Animated.delay(col * BOUNCE_STAGGER),
+      Animated.timing(lift, { toValue: -18, duration: 140, useNativeDriver: nativeDriver }),
+      Animated.spring(lift, { toValue: 0, friction: 3, useNativeDriver: nativeDriver }),
+    ]).start();
+  }, [bounce, animate, col, lift]);
+
+  const rotateX = turn.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '90deg'] });
+  return (
+    <Animated.View
+      style={[
+        styles.tile,
+        ch && !shown && styles.tileFilled,
+        shown && { backgroundColor: MARK_COLOR[shown], borderColor: MARK_COLOR[shown] },
+        { transform: [{ perspective: 600 }, { rotateX }, { translateY: lift }, { scale }] },
+      ]}
+    >
+      <Text style={styles.tileText}>{ch}</Text>
+    </Animated.View>
   );
 }
 
