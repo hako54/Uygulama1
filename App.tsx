@@ -317,7 +317,8 @@ function Game() {
   };
 
   const onShare = () => {
-    const message = shareText(lang, day, game.guesses, answer, game.status === 'won');
+    // Always today's free word: the stats sheet can be opened while an extra word is on the board.
+    const message = shareText(lang, day, game.guesses, wordForDay(lang, day), game.status === 'won');
     // Browsers often refuse the share sheet; copying the result works everywhere.
     if (Platform.OS === 'web') {
       navigator.clipboard

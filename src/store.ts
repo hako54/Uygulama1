@@ -63,9 +63,12 @@ export async function openStore(events: StoreEvents): Promise<Store> {
           if (!isUserCancelledError(e)) events.onError();
         }),
       ];
-      const products = await fetchProducts({ skus: PACKS.map((p) => p.id), type: 'in-app' });
+      // Prices are a nicety: if they can't be fetched, show the fallback prices and still sell.
       const prices: Store['prices'] = {};
-      for (const product of products ?? []) prices[product.id as PackId] = product.displayPrice;
+      try {
+        const products = await fetchProducts({ skus: PACKS.map((p) => p.id), type: 'in-app' });
+        for (const product of products ?? []) prices[product.id as PackId] = product.displayPrice;
+      } catch {}
       return {
         prices,
         demo: false,

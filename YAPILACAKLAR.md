@@ -19,8 +19,10 @@ Durum: `[x]` bitti · `[ ]` sırada · `[~]` başladı, yarım · `[-]` bilinçl
 
 1. [x] **İş listesi ve otomatik kontrol (CI):** her push'ta tip kontrolü, lint ve testler GitHub'da
    otomatik çalışır; bozuk kod fark edilmeden birikmez.
-2. [ ] **Kod incelemesi:** tüm uygulamanın hata avı (gün değişimi, satın alma, kayıt, dil değişimi gibi
+2. [x] **Kod incelemesi:** tüm uygulamanın hata avı (gün değişimi, satın alma, kayıt, dil değişimi gibi
    kenar durumları) ve bulunan hataların düzeltilmesi.
+   Düzeltilenler: ekstra kelime oynarken istatistikten paylaşılan sonucun yanlış renklenmesi; mağaza
+   fiyatları alınamayınca satın almanın tamamen kapanması.
 3. [ ] **Oyun hissi:** harf kartlarının çevrilme animasyonu, kazanınca zıplama, tuşlarda ve sonuçta
    titreşim (haptics). Bu tür oyunlarda oyuncuyu tutan en önemli ayrıntılardan biri.
 4. [ ] **Erişilebilirlik:** VoiceOver/TalkBack etiketleri, renk körleri için yüksek kontrast modu
