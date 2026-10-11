@@ -62,6 +62,8 @@ export const saveLang = (l: Lang) => save('lang', l);
 export type ReminderPref = 'on' | 'off';
 export const loadReminderPref = () => load<ReminderPref>('reminders');
 export const saveReminderPref = (p: ReminderPref) => save('reminders', p);
+export const loadContrast = async () => (await load<boolean>('contrast')) ?? false;
+export const saveContrast = (on: boolean) => save('contrast', on);
 export const loadSeenHelp = () => load<boolean>('seenHelp');
 export const saveSeenHelp = () => save('seenHelp', true);
 

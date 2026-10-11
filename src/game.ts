@@ -132,9 +132,19 @@ export function keyboardMarks(guesses: string[], answer: string): Record<string,
 }
 
 const EMOJI: Record<Mark, string> = { correct: '🟩', present: '🟨', absent: '⬛' };
+// High contrast mode shares orange/blue squares, matching what the player saw.
+const CONTRAST_EMOJI: Record<Mark, string> = { correct: '🟧', present: '🟦', absent: '⬛' };
 
-export function shareText(lang: Lang, day: number, guesses: string[], answer: string, won: boolean): string {
+export function shareText(
+  lang: Lang,
+  day: number,
+  guesses: string[],
+  answer: string,
+  won: boolean,
+  contrast = false,
+): string {
   const score = won ? guesses.length : 'X';
-  const grid = guesses.map((g) => evaluate(g, answer).map((m) => EMOJI[m]).join('')).join('\n');
+  const emoji = contrast ? CONTRAST_EMOJI : EMOJI;
+  const grid = guesses.map((g) => evaluate(g, answer).map((m) => emoji[m]).join('')).join('\n');
   return `Kelimo ${lang.toUpperCase()} #${day + 1} ${score}/${MAX_GUESSES}\n\n${grid}`;
 }

@@ -63,6 +63,13 @@ test('streaks', () => {
   assert.deepEqual(s.distribution, [0, 1, 1, 1, 0, 0]);
 });
 
+test('share text uses orange and blue in high contrast mode', () => {
+  assert.equal(
+    shareText('en', 0, ['CRANE', 'CROAK'], 'CROAK', true, true),
+    'Kelimo EN #1 2/6\n\n🟧🟧🟦⬛⬛\n🟧🟧🟧🟧🟧',
+  );
+});
+
 test('share text', () => {
   assert.equal(shareText('en', 0, ['CRANE'], 'CRANE', true), 'Kelimo EN #1 1/6\n\n🟩🟩🟩🟩🟩');
 });

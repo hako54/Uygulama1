@@ -26,8 +26,10 @@ Durum: `[x]` bitti · `[ ]` sırada · `[~]` başladı, yarım · `[-]` bilinçl
 3. [x] **Oyun hissi:** harf kartlarının çevrilme animasyonu, kazanınca zıplama, tuşlarda ve sonuçta
    titreşim (haptics). Bu tür oyunlarda oyuncuyu tutan en önemli ayrıntılardan biri.
    Kartlar dönerken klavye renkleri ve sonuç mesajı gizli kalır; "Hareketi Azalt" açıksa animasyon yok.
-4. [ ] **Erişilebilirlik:** VoiceOver/TalkBack etiketleri, renk körleri için yüksek kontrast modu
+4. [x] **Erişilebilirlik:** VoiceOver/TalkBack etiketleri, renk körleri için yüksek kontrast modu
    (yeşil/sarı yerine turuncu/mavi), iPad ve web'de fiziksel klavye ile oynama.
+   Fiziksel klavye web'de (iPad Safari dahil) çalışır; yerel iPad uygulamasında yalnızca ekran
+   klavyesi var (React Native genel klavye olayı vermiyor).
 5. [ ] **iPad:** iPad ekranında yerleşimin kontrolü ve iyileştirilmesi; App Store için iPad ekran
    görüntüleri (13" iPad, 2064×2752). iPad desteği açık olduğu için App Store bunları zorunlu tutar.
 6. [ ] **Uygulama içi bağlantılar ve destek sayfası:** yardım ekranına "Gizlilik" ve "Destek"

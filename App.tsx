@@ -1,12 +1,14 @@
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   Animated,
   Modal,
   Platform,
   Pressable,
   Share,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -41,6 +43,7 @@ import {
   changeCredits,
   emptyStats,
   loadBonus,
+  loadContrast,
   loadCredits,
   loadGame,
   loadLang,
@@ -49,6 +52,7 @@ import {
   loadStats,
   recordResult,
   saveBonus,
+  saveContrast,
   saveGame,
   saveLang,
   saveReminderPref,
@@ -69,10 +73,12 @@ const COLORS = {
   modal: '#1e1e20',
 };
 
-const MARK_COLOR: Record<Mark, string> = {
-  correct: COLORS.correct,
-  present: COLORS.present,
-  absent: COLORS.absent,
+type Palette = Record<Mark, string>;
+
+const PALETTES: { normal: Palette; contrast: Palette } = {
+  normal: { correct: COLORS.correct, present: COLORS.present, absent: COLORS.absent },
+  // Orange and blue stay distinct for the common kinds of colour blindness.
+  contrast: { correct: '#f5793a', present: '#85c0f9', absent: COLORS.absent },
 };
 
 function deviceLang(): Lang {
@@ -116,6 +122,8 @@ function Game() {
   // Identifies the winning row (mode, row and word) so only that row bounces.
   const [bounceKey, setBounceKey] = useState<string | null>(null);
   const reduceMotion = useReduceMotion();
+  const [contrast, setContrast] = useState(false);
+  const markColor = contrast ? PALETTES.contrast : PALETTES.normal;
   const revealMs = reduceMotion ? 0 : REVEAL_MS;
 
   const t = STRINGS[lang];
@@ -129,6 +137,7 @@ function Game() {
 
   const flash = useCallback((msg: string, ms = 1500) => {
     setToast(msg);
+    AccessibilityInfo.announceForAccessibility(msg);
     setTimeout(() => setToast((m) => (m === msg ? null : m)), ms);
   }, []);
   const inBonus = mode === 'bonus' && bonus !== null;
@@ -144,6 +153,7 @@ function Game() {
       if (!(await loadSeenHelp())) setShowHelp(true);
       setCredits(await loadCredits());
       setReminderPref(await loadReminderPref());
+      setContrast(await loadContrast());
     })();
   }, []);
 
@@ -206,6 +216,19 @@ function Game() {
     return () => clearInterval(id);
   }, [day]);
 
+  const markName = (m: Mark) =>
+    m === 'correct' ? t.a11yCorrect : m === 'present' ? t.a11yPresent : t.a11yAbsent;
+
+  /** What a screen reader says for a guess row, e.g. "Guess 1: K not in word, A correct spot…". */
+  const rowLabel = (row: number, guess: string, typed = false) => {
+    const chars = letters(guess);
+    const marks = typed ? null : evaluate(guess, answer);
+    const body = chars.length
+      ? chars.map((ch, i) => (marks ? `${ch} ${markName(marks[i])}` : ch)).join(', ')
+      : t.a11yEmpty;
+    return `${fill(t.a11yRow, row + 1)}: ${body}`;
+  };
+
   const doShake = () => {
     haptic.invalid();
     if (reduceMotion) return;
@@ -240,7 +263,10 @@ function Game() {
     const showResult = (openSheet: () => void) => {
       setTimeout(() => {
         setRevealRow(null);
-        if (!won && !lost) return;
+        if (!won && !lost) {
+          AccessibilityInfo.announceForAccessibility(rowLabel(row, current));
+          return;
+        }
         if (won) {
           haptic.win();
           setBounceKey(`${mode}:${row}:${current}`);
@@ -276,6 +302,35 @@ function Game() {
     haptic.key();
     if (key === 'DEL') return setCurrent((c) => letters(c).slice(0, -1).join(''));
     if (letters(current).length < WORD_LENGTH) setCurrent((c) => c + upper(key, lang));
+  };
+
+  // Hardware keyboards on web (including iPad Safari). Native apps only get the on-screen keys.
+  const onKeyRef = useRef(onKey);
+  useEffect(() => {
+    onKeyRef.current = onKey;
+  });
+  const sheetOpen = showHelp || showStats || showLang || showExtra || showAsk;
+  useEffect(() => {
+    if (Platform.OS !== 'web' || sheetOpen) return;
+    const keys = new Set(KEYBOARD[lang].flat());
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === 'Enter') onKeyRef.current('ENTER');
+      else if (e.key === 'Backspace') onKeyRef.current('DEL');
+      else {
+        const key = upper(e.key, lang);
+        if (!keys.has(key) || key === 'ENTER' || key === 'DEL') return;
+        onKeyRef.current(key);
+      }
+      e.preventDefault();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [lang, sheetOpen]);
+
+  const toggleContrast = (on: boolean) => {
+    setContrast(on);
+    saveContrast(on);
   };
 
   const remindersSupported = Platform.OS === 'ios' || Platform.OS === 'android';
@@ -343,7 +398,8 @@ function Game() {
 
   const onShare = () => {
     // Always today's free word: the stats sheet can be opened while an extra word is on the board.
-    const message = shareText(lang, day, game.guesses, wordForDay(lang, day), game.status === 'won');
+    const won = game.status === 'won';
+    const message = shareText(lang, day, game.guesses, wordForDay(lang, day), won, contrast);
     // Browsers often refuse the share sheet; copying the result works everywhere.
     if (Platform.OS === 'web') {
       navigator.clipboard
@@ -369,10 +425,11 @@ function Game() {
 
       <View style={styles.header}>
         <View style={styles.headerSide}>
-          <IconButton label="?" onPress={() => setShowHelp(true)} />
+          <IconButton label="?" a11y={t.howTo} onPress={() => setShowHelp(true)} />
           {remindersSupported && (
             <IconButton
               label={reminderPref === 'on' ? '🔔' : '🔕'}
+              a11y={reminderPref === 'on' ? t.remindersOn : t.remindersOff}
               onPress={() => setReminders(reminderPref !== 'on')}
             />
           )}
@@ -386,8 +443,12 @@ function Game() {
           )}
         </View>
         <View style={[styles.headerSide, styles.headerRight]}>
-          <IconButton label={lang.toUpperCase()} onPress={() => setShowLang(true)} />
-          <IconButton label="📊" onPress={() => setShowStats(true)} />
+          <IconButton
+            label={lang.toUpperCase()}
+            a11y={`${t.language}: ${LANG_NAMES[lang]}`}
+            onPress={() => setShowLang(true)}
+          />
+          <IconButton label="📊" a11y={t.stats} onPress={() => setShowStats(true)} />
         </View>
       </View>
 
@@ -397,10 +458,20 @@ function Game() {
           const isCurrent = row === board.guesses.length && board.status === 'playing';
           const rowLetters = letters(guess ?? (isCurrent ? current : ''));
           const marks = guess ? evaluate(guess, answer) : null;
+          const revealing = revealRow === row;
           return (
             <Animated.View
               key={row}
               style={[styles.row, isCurrent && { transform: [{ translateX: shake }] }]}
+              // Each row is read as one sentence; rows not reached yet are skipped.
+              accessible={guess !== undefined || isCurrent}
+              accessibilityLabel={
+                guess && !revealing
+                  ? rowLabel(row, guess)
+                  : rowLabel(row, rowLetters.join(''), true)
+              }
+              accessibilityElementsHidden={guess === undefined && !isCurrent}
+              importantForAccessibility={guess === undefined && !isCurrent ? 'no-hide-descendants' : 'yes'}
             >
               {Array.from({ length: WORD_LENGTH }, (_, col) => (
                 // A submitted guess remounts its tiles, which is what starts their flip.
@@ -412,6 +483,7 @@ function Game() {
                   bounce={guess !== undefined && bounceKey === `${mode}:${row}:${guess}`}
                   col={col}
                   animate={!reduceMotion}
+                  colors={markColor}
                 />
               ))}
             </Animated.View>
@@ -429,10 +501,20 @@ function Game() {
                 <Pressable
                   key={key}
                   onPress={() => onKey(key)}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    key === 'ENTER'
+                      ? t.a11yEnter
+                      : key === 'DEL'
+                        ? t.a11yDelete
+                        : mark
+                          ? `${key}, ${markName(mark)}`
+                          : key
+                  }
                   style={({ pressed }) => [
                     styles.key,
                     wide && styles.keyWide,
-                    mark && { backgroundColor: MARK_COLOR[mark] },
+                    mark && { backgroundColor: markColor[mark] },
                     pressed && { opacity: 0.6 },
                   ]}
                 >
@@ -473,11 +555,24 @@ function Game() {
         ))}
         {(['correct', 'present', 'absent'] as Mark[]).map((m) => (
           <View key={m} style={styles.legendRow}>
-            <View style={[styles.legendTile, { backgroundColor: MARK_COLOR[m] }]} />
+            <View style={[styles.legendTile, { backgroundColor: markColor[m] }]} />
             <Text style={styles.body}>{t[m]}</Text>
           </View>
         ))}
         <Text style={[styles.body, styles.bold]}>{t.daily}</Text>
+        <View style={styles.settingRow}>
+          <View style={styles.settingText}>
+            <Text style={[styles.body, styles.bold]}>{t.contrastMode}</Text>
+            <Text style={[styles.statLabel, styles.muted]}>{t.contrastHint}</Text>
+          </View>
+          <Switch
+            value={contrast}
+            onValueChange={toggleContrast}
+            accessibilityLabel={t.contrastMode}
+            trackColor={{ true: markColor.correct, false: COLORS.border }}
+            thumbColor={COLORS.text}
+          />
+        </View>
       </Sheet>
 
       <Sheet visible={showStats} onClose={closeStats} title={t.stats} closeLabel={t.close}>
@@ -500,7 +595,7 @@ function Game() {
                     styles.distBar,
                     {
                       width: `${Math.max(8, (n / max) * 100)}%`,
-                      backgroundColor: highlight ? COLORS.correct : COLORS.border,
+                      backgroundColor: highlight ? markColor.correct : COLORS.border,
                     },
                   ]}
                 >
@@ -588,6 +683,7 @@ function Tile({
   bounce,
   col,
   animate,
+  colors,
 }: {
   ch: string;
   mark?: Mark;
@@ -595,6 +691,7 @@ function Tile({
   bounce: boolean;
   col: number;
   animate: boolean;
+  colors: Palette;
 }) {
   const [turn] = useState(() => new Animated.Value(0));
   const [lift] = useState(() => new Animated.Value(0));
@@ -635,7 +732,7 @@ function Tile({
       style={[
         styles.tile,
         ch && !shown && styles.tileFilled,
-        shown && { backgroundColor: MARK_COLOR[shown], borderColor: MARK_COLOR[shown] },
+        shown && { backgroundColor: colors[shown], borderColor: colors[shown] },
         { transform: [{ perspective: 600 }, { rotateX }, { translateY: lift }, { scale }] },
       ]}
     >
@@ -644,9 +741,15 @@ function Tile({
   );
 }
 
-function IconButton({ label, onPress }: { label: string; onPress: () => void }) {
+function IconButton({ label, a11y, onPress }: { label: string; a11y: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} hitSlop={8} style={styles.iconButton}>
+    <Pressable
+      onPress={onPress}
+      hitSlop={8}
+      style={styles.iconButton}
+      accessibilityRole="button"
+      accessibilityLabel={a11y}
+    >
       <Text style={styles.iconText}>{label}</Text>
     </Pressable>
   );
@@ -824,6 +927,16 @@ const styles = StyleSheet.create({
   bold: { fontWeight: '700', marginTop: 6 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   legendTile: { width: 26, height: 26, borderRadius: 3 },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 6,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  settingText: { flex: 1 },
   langRow: {
     flexDirection: 'row',
     alignItems: 'center',
