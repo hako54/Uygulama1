@@ -30,8 +30,10 @@ Durum: `[x]` bitti · `[ ]` sırada · `[~]` başladı, yarım · `[-]` bilinçl
    (yeşil/sarı yerine turuncu/mavi), iPad ve web'de fiziksel klavye ile oynama.
    Fiziksel klavye web'de (iPad Safari dahil) çalışır; yerel iPad uygulamasında yalnızca ekran
    klavyesi var (React Native genel klavye olayı vermiyor).
-5. [ ] **iPad:** iPad ekranında yerleşimin kontrolü ve iyileştirilmesi; App Store için iPad ekran
+5. [x] **iPad:** iPad ekranında yerleşimin kontrolü ve iyileştirilmesi; App Store için iPad ekran
    görüntüleri (13" iPad, 2064×2752). iPad desteği açık olduğu için App Store bunları zorunlu tutar.
+   Kartlar ve klavye ekran boyutuna göre ölçeklenir (iPhone SE'den iPad yatay ve Split View'e kadar
+   test edildi); iPad ekran görüntüleri `store/screenshots/ipad/`.
 6. [ ] **Uygulama içi bağlantılar ve destek sayfası:** yardım ekranına "Gizlilik" ve "Destek"
    bağlantıları; App Store'un zorunlu tuttuğu destek sayfası (`docs/support.html`, SSS dahil).
 7. [ ] **Mağaza başvuru yanıtları:** App Store yaş derecelendirmesi, kategori, App Privacy, Google Play

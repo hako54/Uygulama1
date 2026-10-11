@@ -101,6 +101,7 @@ satın almalar sunucuda doğrulanmaz (düşük fiyatlı tüketilebilir ürün i�
 | `assets/` | Simge seti (iOS, Android uyarlanabilir + tek renkli, açılış ekranı, favicon) |
 | `store/listing.json` | 6 dilde ad, alt başlık, tanıtım metni, anahtar kelimeler, kısa/uzun açıklama |
 | `store/screenshots/ios/<dil>/` | App Store ekran görüntüleri, 1290×2796 (6,7"/6,9" iPhone) |
+| `store/screenshots/ipad/<dil>/` | App Store iPad ekran görüntüleri, 2064×2752 (13" iPad) |
 | `store/screenshots/android/<dil>/` | Google Play ekran görüntüleri, 1080×1920 |
 
 - Simgeleri yeniden üretmek: `npm run brand:icons` (tasarım `scripts/brand/render-icons.cjs` içinde).

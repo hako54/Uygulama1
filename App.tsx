@@ -11,8 +11,13 @@ import {
   Switch,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 import {
   LANGS,
@@ -34,6 +39,7 @@ import {
 } from './src/game';
 import { KEYBOARD, STRINGS, fill } from './src/i18n';
 import { BOUNCE_STAGGER, FLIP_HALF, FLIP_STAGGER, REVEAL_MS, haptic, useReduceMotion } from './src/feel';
+import { Layout, computeLayout } from './src/layout';
 import { requestReminderPermission, scheduleReminders } from './src/reminders';
 import {
   BonusState,
@@ -122,6 +128,10 @@ function Game() {
   // Identifies the winning row (mode, row and word) so only that row bounces.
   const [bounceKey, setBounceKey] = useState<string | null>(null);
   const reduceMotion = useReduceMotion();
+  // Board and keys scale with the window: small phones, iPad portrait/landscape and Split View.
+  const screen = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const layout = computeLayout(screen.width, screen.height - insets.top - insets.bottom);
   const [contrast, setContrast] = useState(false);
   const markColor = contrast ? PALETTES.contrast : PALETTES.normal;
   const revealMs = reduceMotion ? 0 : REVEAL_MS;
@@ -452,7 +462,7 @@ function Game() {
         </View>
       </View>
 
-      <View style={styles.board}>
+      <View style={[styles.board, { gap: layout.tileGap }]}>
         {Array.from({ length: MAX_GUESSES }, (_, row) => {
           const guess = board.guesses[row];
           const isCurrent = row === board.guesses.length && board.status === 'playing';
@@ -462,7 +472,11 @@ function Game() {
           return (
             <Animated.View
               key={row}
-              style={[styles.row, isCurrent && { transform: [{ translateX: shake }] }]}
+              style={[
+                styles.row,
+                { gap: layout.tileGap },
+                isCurrent && { transform: [{ translateX: shake }] },
+              ]}
               // Each row is read as one sentence; rows not reached yet are skipped.
               accessible={guess !== undefined || isCurrent}
               accessibilityLabel={
@@ -484,6 +498,7 @@ function Game() {
                   col={col}
                   animate={!reduceMotion}
                   colors={markColor}
+                  layout={layout}
                 />
               ))}
             </Animated.View>
@@ -491,9 +506,11 @@ function Game() {
         })}
       </View>
 
-      <View style={styles.keyboard}>
+      <View
+        style={[styles.keyboard, { gap: layout.keyGap + 3, maxWidth: layout.keyboardWidth }]}
+      >
         {KEYBOARD[lang].map((row, i) => (
-          <View key={i} style={styles.keyRow}>
+          <View key={i} style={[styles.keyRow, { gap: layout.keyGap }]}>
             {row.map((key) => {
               const mark = keyMarks[key];
               const wide = key === 'ENTER' || key === 'DEL';
@@ -513,12 +530,15 @@ function Game() {
                   }
                   style={({ pressed }) => [
                     styles.key,
+                    { height: layout.keyHeight, maxWidth: wide ? layout.wideKeyWidth : layout.keyWidth },
                     wide && styles.keyWide,
                     mark && { backgroundColor: markColor[mark] },
                     pressed && { opacity: 0.6 },
                   ]}
                 >
-                  <Text style={[styles.keyText, wide && styles.keyTextSmall]}>
+                  <Text
+                    style={[styles.keyText, { fontSize: wide ? layout.keyFont + 4 : layout.keyFont }]}
+                  >
                     {key === 'DEL' ? '⌫' : key === 'ENTER' ? '↵' : key}
                   </Text>
                 </Pressable>
@@ -684,6 +704,7 @@ function Tile({
   col,
   animate,
   colors,
+  layout,
 }: {
   ch: string;
   mark?: Mark;
@@ -692,6 +713,7 @@ function Tile({
   col: number;
   animate: boolean;
   colors: Palette;
+  layout: Layout;
 }) {
   const [turn] = useState(() => new Animated.Value(0));
   const [lift] = useState(() => new Animated.Value(0));
@@ -731,12 +753,13 @@ function Tile({
     <Animated.View
       style={[
         styles.tile,
+        { width: layout.tile, height: layout.tile },
         ch && !shown && styles.tileFilled,
         shown && { backgroundColor: colors[shown], borderColor: colors[shown] },
         { transform: [{ perspective: 600 }, { rotateX }, { translateY: lift }, { scale }] },
       ]}
     >
-      <Text style={styles.tileText}>{ch}</Text>
+      <Text style={[styles.tileText, { fontSize: layout.tileFont }]}>{ch}</Text>
     </Animated.View>
   );
 }
@@ -871,32 +894,27 @@ const styles = StyleSheet.create({
   },
   iconButton: { minWidth: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   iconText: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
-  board: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 6 },
-  row: { flexDirection: 'row', gap: 6 },
+  board: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  row: { flexDirection: 'row' },
   tile: {
-    width: 58,
-    height: 58,
     borderWidth: 2,
     borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tileFilled: { borderColor: COLORS.muted },
-  tileText: { color: COLORS.text, fontSize: 30, fontWeight: '800' },
-  keyboard: { paddingHorizontal: 4, paddingBottom: 8, gap: 8 },
-  keyRow: { flexDirection: 'row', justifyContent: 'center', gap: 5 },
+  tileText: { color: COLORS.text, fontWeight: '800' },
+  keyboard: { paddingHorizontal: 4, paddingBottom: 8, width: '100%', alignSelf: 'center' },
+  keyRow: { flexDirection: 'row', justifyContent: 'center' },
   key: {
     flex: 1,
-    maxWidth: 44,
-    height: 56,
     borderRadius: 5,
     backgroundColor: COLORS.key,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  keyWide: { flex: 1.5, maxWidth: 66 },
-  keyText: { color: COLORS.text, fontSize: 18, fontWeight: '700' },
-  keyTextSmall: { fontSize: 22 },
+  keyWide: { flex: 1.5 },
+  keyText: { color: COLORS.text, fontWeight: '700' },
   toast: {
     position: 'absolute',
     top: 90,

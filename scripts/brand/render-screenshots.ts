@@ -12,13 +12,23 @@ import { Browser, Page, chromium } from 'playwright';
 import { dayNumber, wordForDay } from '../../src/game';
 import { STRINGS } from '../../src/i18n';
 
-
 const URL = process.argv[2] ?? 'http://localhost:4567';
 const OUT = path.join(__dirname, '../../store/screenshots');
 
-const FORMATS = {
-  ios: { width: 1290, height: 2796 }, // 6.7"/6.9" iPhone
-  android: { width: 1080, height: 1920 }, // Play requires the long side ≤ 2× the short side
+interface Device {
+  width: number;
+  height: number;
+  scale: number;
+}
+
+const PHONE: Device = { width: 430, height: 932, scale: 3 };
+const IPAD: Device = { width: 1032, height: 1376, scale: 2 }; // 13" iPad in points
+
+// Each store format frames screens captured on one device.
+const FORMATS: Record<string, { width: number; height: number; device: Device }> = {
+  ios: { width: 1290, height: 2796, device: PHONE }, // 6.7"/6.9" iPhone
+  ipad: { width: 2064, height: 2752, device: IPAD }, // 13" iPad, required while iPad is supported
+  android: { width: 1080, height: 1920, device: PHONE }, // Play: long side ≤ 2× the short side
 };
 
 const SCENES = {
@@ -54,15 +64,18 @@ const SAMPLE_STATS = {
   distribution: [1, 5, 14, 15, 8, 2],
 };
 
-/** Captures the five app screens for one language at phone size. */
-async function captureApp(browser: Browser, lang: Lang): Promise<Buffer[]> {
+/** Captures the five app screens for one language on one device. */
+async function captureApp(browser: Browser, lang: Lang, device: Device): Promise<Buffer[]> {
   const day = dayNumber();
   const answer = wordForDay(lang, day);
   const { guesses } = SCENES[lang];
   const t = STRINGS[lang];
 
   const open = async (storage: Record<string, unknown>) => {
-    const page = await browser.newPage({ viewport: { width: 430, height: 932 }, deviceScaleFactor: 3 });
+    const page = await browser.newPage({
+      viewport: { width: device.width, height: device.height },
+      deviceScaleFactor: device.scale,
+    });
     await page.addInitScript((items: Record<string, unknown>) => {
       localStorage.clear();
       for (const [k, v] of Object.entries(items)) localStorage.setItem(k, JSON.stringify(v));
@@ -122,19 +135,24 @@ async function captureApp(browser: Browser, lang: Lang): Promise<Buffer[]> {
   return shots;
 }
 
-function framePage(shot: Buffer, [title, subtitle]: readonly string[], size: { width: number; height: number }) {
-  const { width, height } = size;
+function framePage(
+  shot: Buffer,
+  [title, subtitle]: readonly string[],
+  { width, height, device }: { width: number; height: number; device: Device },
+) {
   const captionHeight = Math.round(height * 0.2);
   const phoneHeight = height - captionHeight - Math.round(height * 0.04);
-  const phoneWidth = Math.round((phoneHeight * 430) / 932);
-  const radius = Math.round(phoneWidth * 0.11);
+  const phoneWidth = Math.round((phoneHeight * device.width) / device.height);
+  // Tablets have gentler corners than phones.
+  const radius = Math.round(phoneWidth * (device === IPAD ? 0.04 : 0.11));
+  const titleSize = Math.min(width * 0.085, 150);
   const img = `data:image/png;base64,${shot.toString('base64')}`;
   return `<html><body style="margin:0;width:${width}px;height:${height}px;overflow:hidden;
       background:radial-gradient(circle at 50% 0%, #2f5a2c 0%, #121213 60%);
       font-family:'Inter Display','Inter',Arial,sans-serif;color:#fff;text-align:center">
     <div style="height:${captionHeight}px;display:flex;flex-direction:column;justify-content:center;padding:0 ${width * 0.06}px">
-      <div style="font-size:${width * 0.085}px;font-weight:900;line-height:1.05;letter-spacing:-0.5px">${title}</div>
-      <div style="font-size:${width * 0.042}px;font-weight:500;opacity:.85;margin-top:${width * 0.02}px">${subtitle}</div>
+      <div style="font-size:${titleSize}px;font-weight:900;line-height:1.05;letter-spacing:-0.5px">${title}</div>
+      <div style="font-size:${titleSize * 0.5}px;font-weight:500;opacity:.85;margin-top:${titleSize * 0.25}px">${subtitle}</div>
     </div>
     <div style="margin:0 auto;width:${phoneWidth}px;height:${phoneHeight}px;border-radius:${radius}px;
         border:${Math.round(width * 0.012)}px solid #2c2c2e;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)">
@@ -146,8 +164,10 @@ function framePage(shot: Buffer, [title, subtitle]: readonly string[], size: { w
 (async () => {
   const browser = await chromium.launch();
   for (const lang of Object.keys(SCENES) as Lang[]) {
-    const shots = await captureApp(browser, lang);
+    const captures = new Map<Device, Buffer[]>();
     for (const [platform, size] of Object.entries(FORMATS)) {
+      if (!captures.has(size.device)) captures.set(size.device, await captureApp(browser, lang, size.device));
+      const shots = captures.get(size.device)!;
       const dir = path.join(OUT, platform, lang);
       mkdirSync(dir, { recursive: true });
       for (const [i, shot] of shots.entries()) {
